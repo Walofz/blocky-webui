@@ -20,9 +20,52 @@ A management web interface for [Blocky](https://0xerr0r.github.io/blocky/) — a
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Node.js 18+, TypeScript, Express 4, js-yaml, Zod |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS 3, Recharts |
+| Backend | Node.js 20, TypeScript, Express 4, js-yaml, Zod |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS 3, Recharts, nginx |
 | Config | YAML files (`config/config.yaml`, `config/custom.yaml`) |
+| Container | Docker + Docker Compose |
+
+---
+
+## Docker (Recommended)
+
+### Quick start
+
+```bash
+# 1. Clone and enter the project
+git clone https://github.com/Walofz/blocky-webui
+cd blocky-webui
+
+# 2. (Optional) configure environment
+cp .env.example .env
+# edit .env — set BLOCKY_URL to point at your live Blocky instance
+
+# 3. Build and run
+docker compose up -d --build
+```
+
+Open **http://localhost** in your browser. The UI runs in demo mode (simulated logs) unless `BLOCKY_URL` is set.
+
+### Environment variables (`.env`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BLOCKY_URL` | *(empty)* | Base URL of your Blocky HTTP API (e.g. `http://192.168.1.1:4000`). Empty = demo mode. |
+| `WEBUI_PORT` | `80` | Host port to expose the frontend on |
+| `CORS_ORIGIN` | `http://localhost` | CORS origin for the backend |
+
+### Services
+
+| Service | Image | Port (container) |
+|---------|-------|-----------------|
+| `backend` | Node 20 Alpine | 4000 (internal) |
+| `frontend` | nginx 1.27 Alpine | 80 |
+
+The frontend nginx container proxies `/api/` and `/events/` to the backend, so only **one port** needs to be exposed.
+
+### Config volume
+
+`./config` is mounted into the backend at `/config`. The file `config/custom.yaml` is written here whenever you save changes in the UI.
 
 ---
 
