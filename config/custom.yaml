@@ -1,0 +1,37 @@
+# custom.yaml — Managed by Blocky WebUI (do not edit by hand while the WebUI is running)
+# This file is written atomically by the backend whenever you save changes in the UI.
+# Version is incremented on each save so you can track config history.
+
+version: 1
+
+adsProfiles:
+  - name: "ads-basic"
+    blocklists:
+      - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+      - "https://adaway.org/hosts.txt"
+
+  - name: "ads-strict"
+    blocklists:
+      - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+      - "https://adaway.org/hosts.txt"
+      - "https://raw.githubusercontent.com/nicehash/NiceHashQuickMiner/master/build/whitelist/whitelist.txt"
+
+groups:
+  - name: "default"
+    adsProfile: "ads-basic"
+    clients: []
+
+  - name: "kids"
+    adsProfile: "ads-strict"
+    clients:
+      - "192.168.1.50"
+      - "192.168.1.51"
+
+dnsRecords:
+  - type: "A"
+    domain: "router.local"
+    address: "192.168.1.1"
+
+  - type: "CNAME"
+    domain: "nas.local"
+    target: "fileserver.local"

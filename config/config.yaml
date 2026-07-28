@@ -1,0 +1,19 @@
+# config.yaml — Static Blocky configuration (not managed by the WebUI)
+# Edit this file manually and restart Blocky to apply changes.
+# See: https://0xerr0r.github.io/blocky/configuration/
+
+upstream:
+  default:
+    - 8.8.8.8
+    - 1.1.1.1
+
+blocking:
+  blackLists: {}  # populated from custom.yaml by your integration script
+  clientGroupsBlock: {}
+  blockType: nxDomain
+
+customDNS:
+  mapping: {}  # populated from custom.yaml by your integration script
+
+httpPort: 4000
+logLevel: info
