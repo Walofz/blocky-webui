@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import yaml from 'js-yaml'
 import { CustomConfig, CustomConfigSchema, validateCustomConfig } from './schema'
+import { generateBlockyConfig } from '../services/generateService'
 
 const CONFIG_DIR = process.env.CONFIG_DIR ?? path.join(process.cwd(), '..', 'config')
 const CUSTOM_YAML = path.join(CONFIG_DIR, 'custom.yaml')
@@ -42,6 +43,9 @@ export function saveCustomConfig(config: CustomConfig): void {
   const content = yaml.dump(config, { lineWidth: 120, quotingType: '"' })
   fs.writeFileSync(tmpPath, content, 'utf8')
   fs.renameSync(tmpPath, CUSTOM_YAML)
+
+  // Auto-generate config.generated.yaml for Blocky
+  generateBlockyConfig(config, CONFIG_DIR)
 }
 
 export class ValidationError extends Error {

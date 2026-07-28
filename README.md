@@ -29,43 +29,73 @@ A management web interface for [Blocky](https://0xerr0r.github.io/blocky/) — a
 
 ## Docker (Recommended)
 
+### Architecture
+
+```
+┌─── Host network ────────────────────────────┐
+│  [blocky]  port 53 (DNS) + 4000 (HTTP API)  │
+│     ↑ reads config.generated.yaml           │
+│     ↑ receives reload call from backend     │
+└─────────────────────────────────────────────┘
+         ↑ host.docker.internal:4000
+┌─── Bridge network ──────────────────────────┐
+│  [backend]  :4000  shared ./config volume   │
+│      ↕ writes custom.yaml + generated yaml  │
+│  [frontend] :80    proxies /api + /events   │
+└─────────────────────────────────────────────┘
+        ↑ port 80 exposed to host
+```
+
+Blocky runs with `network_mode: host` so it binds port 53 and sees **real client IPs**. The WebUI backend and frontend run in a normal bridge network and reach Blocky's HTTP API via `host.docker.internal` (mapped automatically by the `extra_hosts: host-gateway` entry).
+
 ### Quick start
 
 ```bash
-# 1. Clone and enter the project
+# 1. Clone the project
 git clone https://github.com/Walofz/blocky-webui
 cd blocky-webui
 
-# 2. (Optional) configure environment
-cp .env.example .env
-# edit .env — set BLOCKY_URL to point at your live Blocky instance
+# 2. Generate the initial Blocky config from the sample custom.yaml
+cd backend && npm install && npm run generate && cd ..
 
-# 3. Build and run
+# 3. (Optional) configure environment
+cp .env.example .env   # edit WEBUI_PORT if needed
+
+# 4. Build and run everything
 docker compose up -d --build
 ```
 
-Open **http://localhost** in your browser. The UI runs in demo mode (simulated logs) unless `BLOCKY_URL` is set.
+Open **http://localhost** in your browser.
+
+> **First time?** The `npm run generate` step is needed once to create `config/config.generated.yaml` before Blocky starts. After that, the WebUI regenerates it automatically on every save.
 
 ### Environment variables (`.env`)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BLOCKY_URL` | *(empty)* | Base URL of your Blocky HTTP API (e.g. `http://192.168.1.1:4000`). Empty = demo mode. |
+| `BLOCKY_URL` | `http://host.docker.internal:4000` | Blocky HTTP API — no change needed for this compose setup |
 | `WEBUI_PORT` | `80` | Host port to expose the frontend on |
 | `CORS_ORIGIN` | `http://localhost` | CORS origin for the backend |
 
 ### Services
 
-| Service | Image | Port (container) |
-|---------|-------|-----------------|
-| `backend` | Node 20 Alpine | 4000 (internal) |
-| `frontend` | nginx 1.27 Alpine | 80 |
+| Service | Network | Exposed ports |
+|---------|---------|---------------|
+| `blocky` | host | 53/UDP+TCP (DNS), 4000/TCP (HTTP API) |
+| `backend` | bridge (internal) | — |
+| `frontend` | bridge | `WEBUI_PORT` → 80 |
 
-The frontend nginx container proxies `/api/` and `/events/` to the backend, so only **one port** needs to be exposed.
+### Full save flow
 
-### Config volume
-
-`./config` is mounted into the backend at `/config`. The file `config/custom.yaml` is written here whenever you save changes in the UI.
+```
+UI save
+  → POST /api/...
+  → validate (Zod + cross-field)
+  → write custom.yaml  (atomic)
+  → generate config.generated.yaml  (auto, same process)
+  → POST blocky:4000/api/config/reload
+  → Blocky reloads with new config
+```
 
 ---
 
