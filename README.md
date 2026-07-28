@@ -254,7 +254,7 @@ blocky-webui/
 
 ## Next Steps
 
-- [ ] Write a converter script (`config/generate-blocky-config.ts`) that merges `custom.yaml` into `config.yaml` in Blocky's native format
+- [ ] ~~Write a converter script (`config/generate-blocky-config.ts`)~~ ✅ `backend/src/generate-blocky-config.ts` — run with `npm run generate`
 - [ ] Add a log ingestion endpoint that receives parsed Blocky log lines
 - [ ] Add authentication (basic auth or token-based)
 - [ ] Persist logs to SQLite for historical queries
