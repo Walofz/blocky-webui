@@ -94,10 +94,18 @@ export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
 
   const [time, clientIP, , durationMs, reason, question] = fields
 
-  // question format: "A (example.com.)"
+  // Common format: "A (example.com.)"
+  // Some Blocky versions/log modes emit plain domain in column 5: "example.com."
+  let domain = ''
   const qMatch = question.match(/^\S+\s+\(([^)]+)\)/)
-  if (!qMatch) return null
-  const domain = qMatch[1].replace(/\.$/, '')
+  if (qMatch) {
+    domain = qMatch[1]
+  } else if (/^[a-z0-9.-]+\.?$/i.test(question)) {
+    domain = question
+  } else {
+    return null
+  }
+  domain = domain.replace(/\.$/, '')
 
   const blocked = reason.toUpperCase().startsWith('BLOCKED')
   const listMatch = blocked ? reason.match(/\(([^)]+)\)/) : null

@@ -60,6 +60,14 @@ async function main() {
   assert.strictEqual(semiSeparated!.action, 'allow')
   assert.strictEqual(semiSeparated!.domain, 'example.org')
 
+  const plainDomainField = parseBlockyCsvLine(
+    '2026-07-29 07:25:17\t127.0.0.1\t127.0.0.1\t5\tRESOLVED (tcp+udp:1.1.1.1)\tgoogle.com.\tA (142.250.66.110)\tNOERROR\tRESOLVED\tA\tdebian',
+  )
+  assert(plainDomainField, 'plain-domain question field should parse')
+  assert.strictEqual(plainDomainField!.action, 'allow')
+  assert.strictEqual(plainDomainField!.domain, 'google.com')
+  assert.strictEqual(plainDomainField!.clientIP, '127.0.0.1')
+
   assert.strictEqual(parseBlockyCsvLine('garbage line'), null, 'garbage should not parse')
   assert.strictEqual(parseBlockyCsvLine(''), null, 'empty should not parse')
 
