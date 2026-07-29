@@ -32,16 +32,16 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     denylists[profile.name] = profile.blocklists
   }
 
-  // blocking.clientGroupsBlock — map clients → profile name
+  // blocking.clientGroupsBlock — map clients → profile names
   const clientGroupsBlock: Record<string, string[]> = {}
   for (const group of custom.groups) {
+    const profileNames = Array.from(new Set(group.adsProfiles))
+
     if (group.clients.length === 0) {
-      // Keep exactly one profile per key; later groups override earlier ones.
-      clientGroupsBlock['default'] = [group.adsProfile]
+      clientGroupsBlock['default'] = profileNames
     } else {
       for (const client of group.clients) {
-        // Keep exactly one profile per client; later groups override earlier ones.
-        clientGroupsBlock[client] = [group.adsProfile]
+        clientGroupsBlock[client] = profileNames
       }
     }
   }

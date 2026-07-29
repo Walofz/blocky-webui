@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Wifi, WifiOff, Eraser, ShieldCheck, ShieldOff } from 'lucide-react'
 import clsx from 'clsx'
 import { useLogStream } from '../hooks/useLogStream'
-import { logsApi, LogEntry, dnsApi } from '../api/client'
+import { logsApi, LogEntry } from '../api/client'
 
 interface Filters {
   domain: string
@@ -41,15 +41,6 @@ export default function Logs() {
   }, [liveMode, filters])
 
   const displayLogs = liveMode ? streamLogs : staticLogs
-
-  const handleAllowlist = async (domain: string) => {
-    try {
-      await dnsApi.quickAllowlist(domain)
-      alert(`Allowlist action triggered for: ${domain}`)
-    } catch {
-      alert('Failed to trigger allowlist action')
-    }
-  }
 
   const setFilter = (key: keyof Filters, val: string) =>
     setFilters((f) => ({ ...f, [key]: val }))
@@ -149,7 +140,6 @@ export default function Logs() {
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Matched List</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Group</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">ms</th>
-                <th className="px-3 py-2 w-24"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -183,15 +173,6 @@ export default function Logs() {
                   <td className="px-3 py-1.5 text-gray-500">{log.matchedGroup ?? '—'}</td>
                   <td className="px-3 py-1.5 text-gray-400">
                     {log.responseTime != null ? log.responseTime : '—'}
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <button
-                      onClick={() => handleAllowlist(log.domain)}
-                      className="text-xs text-primary-600 hover:underline whitespace-nowrap"
-                      title="Quick allowlist"
-                    >
-                      Allowlist
-                    </button>
                   </td>
                 </tr>
               ))}

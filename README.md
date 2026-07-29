@@ -10,7 +10,7 @@ A management web interface for [Blocky](https://0xerr0r.github.io/blocky/) — a
 |------|-------------|
 | **Dashboard** | Query stats, block rate, top blocked domains, top clients, timeline chart (1h/24h/7d), group health, system status |
 | **Ads Profiles** | Named profiles mapping to one or more blocklist URLs |
-| **Groups** | Client groups mapped to an ads profile (by client IP/range) |
+| **Groups** | Client groups mapped to one or more ads profiles (by client IP/range) |
 | **Custom DNS** | Manage A, AAAA, CNAME records with validation (CNAME loop detection) |
 | **Realtime Logs** | SSE-streamed DNS query log with domain/client/group/action filters and quick-allowlist action |
 

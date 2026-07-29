@@ -10,11 +10,29 @@ export type AdsProfile = z.infer<typeof AdsProfileSchema>
 
 // ─── Group ────────────────────────────────────────────────────────────────────
 
-export const GroupSchema = z.object({
-  name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Group name must be alphanumeric, dashes, underscores only'),
-  adsProfile: z.string().min(1),
-  clients: z.array(z.string()).default([]),
-})
+export const GroupSchema = z.preprocess(
+  (v) => {
+    if (!v || typeof v !== 'object') return v
+    const obj = v as { adsProfiles?: unknown; adsProfile?: unknown }
+    if (obj.adsProfiles !== undefined) return v
+    if (typeof obj.adsProfile === 'string' && obj.adsProfile.trim().length > 0) {
+      return { ...obj, adsProfiles: [obj.adsProfile.trim()] }
+    }
+    return v
+  },
+  z.object({
+    name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Group name must be alphanumeric, dashes, underscores only'),
+    adsProfiles: z.preprocess(
+      (v) => {
+        if (Array.isArray(v)) return v
+        if (typeof v === 'string' && v.trim().length > 0) return [v.trim()]
+        return v
+      },
+      z.array(z.string().min(1)).min(1, 'Group must reference at least one ads profile'),
+    ),
+    clients: z.array(z.string()).default([]),
+  }),
+)
 export type Group = z.infer<typeof GroupSchema>
 
 // ─── Custom DNS Records ───────────────────────────────────────────────────────
@@ -67,8 +85,10 @@ export function validateCustomConfig(config: CustomConfig): string[] {
 
   // Groups reference existing profiles
   for (const group of config.groups) {
-    if (!profileNames.has(group.adsProfile)) {
-      errors.push(`Group "${group.name}" references unknown ads profile "${group.adsProfile}"`)
+    for (const profileName of group.adsProfiles) {
+      if (!profileNames.has(profileName)) {
+        errors.push(`Group "${group.name}" references unknown ads profile "${profileName}"`)
+      }
     }
   }
 

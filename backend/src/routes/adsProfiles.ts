@@ -62,7 +62,7 @@ router.put('/:name', async (req: Request, res: Response, next: NextFunction) => 
     if (profile.name !== req.params.name) {
       // Update all groups that reference the old name
       for (const g of config.groups) {
-        if (g.adsProfile === req.params.name) g.adsProfile = profile.name
+        g.adsProfiles = g.adsProfiles.map((name) => (name === req.params.name ? profile.name : name))
       }
     }
 
@@ -87,7 +87,7 @@ router.delete('/:name', async (req: Request, res: Response, next: NextFunction) 
     }
 
     // Check if any group still references this profile
-    const dependents = config.groups.filter((g) => g.adsProfile === req.params.name)
+    const dependents = config.groups.filter((g) => g.adsProfiles.includes(req.params.name))
     if (dependents.length > 0) {
       res.status(409).json({
         error: `Cannot delete: profile is used by groups: ${dependents.map((g) => g.name).join(', ')}`,

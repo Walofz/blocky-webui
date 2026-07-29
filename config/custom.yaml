@@ -18,11 +18,14 @@ adsProfiles:
 
 groups:
   - name: "default"
-    adsProfile: "ads-basic"
+    adsProfiles:
+      - "ads-basic"
     clients: []
 
   - name: "kids"
-    adsProfile: "ads-strict"
+    adsProfiles:
+      - "ads-strict"
+      - "ads-basic"
     clients:
       - "192.168.1.50"
       - "192.168.1.51"

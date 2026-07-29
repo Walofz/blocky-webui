@@ -14,7 +14,7 @@ export interface AdsProfile {
 
 export interface Group {
   name: string
-  adsProfile: string
+  adsProfiles: string[]
   clients: string[]
 }
 

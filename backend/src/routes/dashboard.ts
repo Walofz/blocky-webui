@@ -49,9 +49,9 @@ router.get('/', async (_req: Request, res: Response) => {
   // ─── Groups health ────────────────────────────────────────────────────────
   const groupsHealth = config.groups.map((g) => ({
     name: g.name,
-    adsProfile: g.adsProfile,
+    adsProfile: g.adsProfiles.join(', '),
     clientCount: g.clients.length,
-    profile: config.adsProfiles.find((p) => p.name === g.adsProfile),
+    profile: config.adsProfiles.find((p) => p.name === g.adsProfiles[0]),
   }))
 
   res.json({

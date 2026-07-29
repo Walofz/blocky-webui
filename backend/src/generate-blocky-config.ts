@@ -23,7 +23,7 @@ import yaml from 'js-yaml'
 interface CustomConfig {
   version: number
   adsProfiles: Array<{ name: string; blocklists: string[] }>
-  groups: Array<{ name: string; adsProfile: string; clients: string[] }>
+  groups: Array<{ name: string; adsProfiles?: string[]; adsProfile?: string; clients: string[] }>
   dnsRecords: Array<
     | { type: 'A'; domain: string; address: string }
     | { type: 'AAAA'; domain: string; address: string }
@@ -75,22 +75,18 @@ function main() {
 
   // ─── Build blocking.clientGroupsBlock ────────────────────────────────────
   // Maps each group's clients to its ads profile list
-  // Blocky format: { "192.168.1.50": ["profile-name"], "default": ["profile-name"] }
+  // Blocky format: { "192.168.1.50": ["profile-a", "profile-b"], "default": ["profile-a"] }
   const clientGroupsBlock: Record<string, string[]> = {}
 
   for (const group of custom.groups) {
-    const listName = group.adsProfile
+    const listNames = Array.from(new Set(group.adsProfiles ?? (group.adsProfile ? [group.adsProfile] : [])))
 
     if (group.clients.length === 0) {
       // No explicit clients → apply as "default" group (catches all unmatched clients)
-      clientGroupsBlock['default'] = [
-        ...new Set([...(clientGroupsBlock['default'] ?? []), listName]),
-      ]
+      clientGroupsBlock['default'] = listNames
     } else {
       for (const client of group.clients) {
-        clientGroupsBlock[client] = [
-          ...new Set([...(clientGroupsBlock[client] ?? []), listName]),
-        ]
+        clientGroupsBlock[client] = listNames
       }
     }
   }

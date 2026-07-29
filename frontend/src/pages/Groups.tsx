@@ -4,11 +4,11 @@ import { groupsApi, adsProfilesApi, Group, AdsProfile } from '../api/client'
 
 interface FormState {
   name: string
-  adsProfile: string
+  adsProfiles: string[]
   clients: string
 }
 
-const emptyForm: FormState = { name: '', adsProfile: '', clients: '' }
+const emptyForm: FormState = { name: '', adsProfiles: [], clients: '' }
 
 export default function Groups() {
   const [groups, setGroups] = useState<Group[]>([])
@@ -44,7 +44,7 @@ export default function Groups() {
 
   const openEdit = (g: Group) => {
     setEditing(g.name)
-    setForm({ name: g.name, adsProfile: g.adsProfile, clients: g.clients.join('\n') })
+    setForm({ name: g.name, adsProfiles: g.adsProfiles, clients: g.clients.join('\n') })
     setShowForm(true)
     setError(null)
   }
@@ -54,7 +54,7 @@ export default function Groups() {
       setSaving(true)
       setError(null)
       const clients = form.clients.split('\n').map((c) => c.trim()).filter(Boolean)
-      const group: Group = { name: form.name.trim(), adsProfile: form.adsProfile, clients }
+      const group: Group = { name: form.name.trim(), adsProfiles: form.adsProfiles, clients }
 
       if (editing) {
         await groupsApi.update(editing, group)
@@ -112,20 +112,30 @@ export default function Groups() {
             </div>
 
             <div>
-              <label className="label">Ads Profile</label>
+              <label className="label">Ads Profiles</label>
               {profiles.length === 0 ? (
                 <p className="text-sm text-orange-600">No ads profiles found. Create one first.</p>
               ) : (
-                <select
-                  className="input"
-                  value={form.adsProfile}
-                  onChange={(e) => setForm((f) => ({ ...f, adsProfile: e.target.value }))}
-                >
-                  <option value="">— Select profile —</option>
+                <div className="space-y-2 max-h-40 overflow-auto border border-gray-200 rounded-md p-3">
                   {profiles.map((p) => (
-                    <option key={p.name} value={p.name}>{p.name}</option>
+                    <label key={p.name} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.adsProfiles.includes(p.name)}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+                          setForm((f) => ({
+                            ...f,
+                            adsProfiles: checked
+                              ? [...f.adsProfiles, p.name]
+                              : f.adsProfiles.filter((name) => name !== p.name),
+                          }))
+                        }}
+                      />
+                      <span>{p.name}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               )}
             </div>
 
@@ -163,7 +173,11 @@ export default function Groups() {
                 <div className="flex items-center gap-2 mb-1">
                   <Users size={16} className="text-primary-600" />
                   <span className="font-semibold">{g.name}</span>
-                  <span className="badge-blue">{g.adsProfile}</span>
+                  <div className="flex flex-wrap gap-1">
+                    {g.adsProfiles.map((profileName) => (
+                      <span key={profileName} className="badge-blue">{profileName}</span>
+                    ))}
+                  </div>
                 </div>
                 {g.clients.length > 0 ? (
                   <div className="flex flex-wrap gap-1 mt-2">

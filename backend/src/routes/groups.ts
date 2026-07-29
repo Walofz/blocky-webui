@@ -33,9 +33,9 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       return
     }
 
-    const profileExists = config.adsProfiles.some((p) => p.name === group.adsProfile)
-    if (!profileExists) {
-      res.status(400).json({ error: `Ads profile "${group.adsProfile}" does not exist` })
+    const missingProfiles = group.adsProfiles.filter((profileName) => !config.adsProfiles.some((p) => p.name === profileName))
+    if (missingProfiles.length > 0) {
+      res.status(400).json({ error: `Ads profile(s) not found: ${missingProfiles.join(', ')}` })
       return
     }
 
@@ -60,9 +60,9 @@ router.put('/:name', async (req: Request, res: Response, next: NextFunction) => 
       return
     }
 
-    const profileExists = config.adsProfiles.some((p) => p.name === group.adsProfile)
-    if (!profileExists) {
-      res.status(400).json({ error: `Ads profile "${group.adsProfile}" does not exist` })
+    const missingProfiles = group.adsProfiles.filter((profileName) => !config.adsProfiles.some((p) => p.name === profileName))
+    if (missingProfiles.length > 0) {
+      res.status(400).json({ error: `Ads profile(s) not found: ${missingProfiles.join(', ')}` })
       return
     }
 
