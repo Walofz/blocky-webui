@@ -170,6 +170,7 @@ CONFIG_DIR=/etc/blocky npm run dev
 | `PORT` | `4000` | Backend HTTP port |
 | `CONFIG_DIR` | `../config` | Directory containing `config.yaml` / `custom.yaml` |
 | `BLOCKY_URL` | *(unset)* | Base URL of live Blocky HTTP API (e.g. `http://192.168.1.1:4000`). When unset, demo mode activates. |
+| `LOG_DIR` | `$CONFIG_DIR/logs` | Directory where Blocky writes its CSV query log files (tailed for realtime logs) |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
 
 ---
@@ -185,10 +186,11 @@ CONFIG_DIR=/etc/blocky npm run dev
 
 3. **Config generation**: The current WebUI saves `custom.yaml` which is *separate* from the format Blocky reads. To bridge the gap, you need a small script (or a future WebUI feature) that converts `custom.yaml` into Blocky's native `blocking.blackLists`, `blocking.clientGroupsBlock`, and `customDNS.mapping` fields and writes them into `config.yaml` (or a merged file). A reference converter will be added in a follow-up.
 
-4. **Log ingestion**: The log stream currently uses simulated demo data. To receive real Blocky logs:
-   - Configure Blocky with `logFile: /var/log/blocky/query.log`
-   - Add a log-tail service that reads the file and calls the backend's internal append endpoint, *or*
-   - Parse Blocky's structured log format and push entries via a POST to `/api/logs/ingest` (endpoint scaffold is ready to be wired up)
+4. **Log ingestion**: When `BLOCKY_URL` is set, the backend tails Blocky's CSV query log files and streams real entries to the UI:
+   - Blocky is configured with `queryLog: { type: csv, target: /app/config/logs }` (see `config/config.yaml`) — it writes one tab-separated file per day (`YYYY-MM-DD_ALL.log`) into the shared `./config/logs` directory
+   - The backend polls the newest file every second, parses appended lines and pushes them to the SSE stream (`backend/src/services/logIngest.ts`)
+   - Override the watched directory with the `LOG_DIR` environment variable if your Blocky writes logs elsewhere
+   - Without `BLOCKY_URL`, demo mode keeps generating fake entries
 
 ---
 
@@ -210,6 +212,7 @@ blocky-webui/
 │   │   │   └── dashboard.ts      # Aggregated dashboard data
 │   │   ├── services/
 │   │   │   ├── blockyService.ts  # Reload hook + status check
+│   │   │   ├── logIngest.ts      # Tails Blocky's CSV query log (real mode)
 │   │   │   └── logService.ts     # Ring buffer + SSE broadcaster
 │   │   └── middleware/
 │   │       └── errorHandler.ts   # Zod + ValidationError handler
@@ -285,7 +288,7 @@ blocky-webui/
 ## Next Steps
 
 - [ ] ~~Write a converter script (`config/generate-blocky-config.ts`)~~ ✅ `backend/src/generate-blocky-config.ts` — run with `npm run generate`
-- [ ] Add a log ingestion endpoint that receives parsed Blocky log lines
+- [ ] ~~Add real log ingestion~~ ✅ backend tails Blocky's CSV query log (`queryLog.type: csv`) when `BLOCKY_URL` is set
 - [ ] Add authentication (basic auth or token-based)
 - [ ] Persist logs to SQLite for historical queries
 - [ ] Add export / import of `custom.yaml`

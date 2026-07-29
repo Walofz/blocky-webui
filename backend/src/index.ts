@@ -8,6 +8,7 @@ import logsRouter from './routes/logs'
 import dashboardRouter from './routes/dashboard'
 import { loadCustomConfig } from './config/loader'
 import { startDemoLogs } from './services/logService'
+import { startLogIngest } from './services/logIngest'
 
 const app = express()
 const PORT = process.env.PORT ?? 4000
@@ -55,6 +56,9 @@ app.listen(PORT, () => {
   if (!process.env.BLOCKY_URL) {
     console.log('  [demo mode] BLOCKY_URL not set — using demo data')
     startDemoLogs()
+  } else {
+    // Real mode: tail Blocky's CSV query log (queryLog.type=csv in config.yaml)
+    startLogIngest()
   }
 })
 

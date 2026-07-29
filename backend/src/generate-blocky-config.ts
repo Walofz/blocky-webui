@@ -48,7 +48,7 @@ interface BlockyConfig {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main() {
-  const configDir = process.env.CONFIG_DIR ?? path.join(__dirname, '..', 'config')
+  const configDir = process.env.CONFIG_DIR ?? path.join(__dirname, '..', '..', 'config')
   const customPath = path.join(configDir, 'custom.yaml')
   const basePath = path.join(configDir, 'config.yaml')
   const outPath = path.join(configDir, 'config.generated.yaml')

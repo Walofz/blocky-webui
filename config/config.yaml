@@ -15,5 +15,14 @@ blocking:
 customDNS:
   mapping: {}  # populated from custom.yaml by your integration script
 
+queryLog:
+  # CSV query log written into the shared ./config volume.
+  # The WebUI backend tails these files to stream realtime logs.
+  # Blocky (docker, host network) sees this dir as /app/config/logs,
+  # the backend container sees it as /config/logs.
+  type: csv
+  target: /app/config/logs
+  logRetentionDays: 7
+
 httpPort: 4000
 logLevel: info
