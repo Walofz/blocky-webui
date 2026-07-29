@@ -5,6 +5,7 @@ import { CustomConfig } from '../config/schema'
 
 interface BlockyConfig {
   blocking?: {
+    denylists?: Record<string, string[]>
     blackLists?: Record<string, string[]>
     clientGroupsBlock?: Record<string, string[]>
     blockType?: string
@@ -25,24 +26,22 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     base = yaml.load(fs.readFileSync(basePath, 'utf8')) as BlockyConfig
   }
 
-  // blocking.blackLists — one entry per ads profile
-  const blackLists: Record<string, string[]> = {}
+  // blocking.denylists — one entry per ads profile
+  const denylists: Record<string, string[]> = {}
   for (const profile of custom.adsProfiles) {
-    blackLists[profile.name] = profile.blocklists
+    denylists[profile.name] = profile.blocklists
   }
 
   // blocking.clientGroupsBlock — map clients → profile name
   const clientGroupsBlock: Record<string, string[]> = {}
   for (const group of custom.groups) {
     if (group.clients.length === 0) {
-      clientGroupsBlock['default'] = [
-        ...new Set([...(clientGroupsBlock['default'] ?? []), group.adsProfile]),
-      ]
+      // Keep exactly one profile per key; later groups override earlier ones.
+      clientGroupsBlock['default'] = [group.adsProfile]
     } else {
       for (const client of group.clients) {
-        clientGroupsBlock[client] = [
-          ...new Set([...(clientGroupsBlock[client] ?? []), group.adsProfile]),
-        ]
+        // Keep exactly one profile per client; later groups override earlier ones.
+        clientGroupsBlock[client] = [group.adsProfile]
       }
     }
   }
@@ -62,7 +61,7 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     ...base,
     blocking: {
       ...(base.blocking ?? {}),
-      blackLists,
+      denylists,
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },
