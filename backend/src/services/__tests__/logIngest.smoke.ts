@@ -45,6 +45,21 @@ async function main() {
   assert.strictEqual(allowed!.domain, 'github.com')
   assert.strictEqual(allowed!.matchedList, undefined)
 
+  const commaSeparated = parseBlockyCsvLine(
+    '"2026-07-29 13:00:05","10.0.0.6","pc-1","9","BLOCKED (ads-pro)","A (analytics.google.com.)","0.0.0.0","NOERROR"',
+  )
+  assert(commaSeparated, 'comma-separated line should parse')
+  assert.strictEqual(commaSeparated!.action, 'block')
+  assert.strictEqual(commaSeparated!.domain, 'analytics.google.com')
+  assert.strictEqual(commaSeparated!.matchedList, 'ads-pro')
+
+  const semiSeparated = parseBlockyCsvLine(
+    '2026-07-29 13:00:06;10.0.0.7;pc-2;5;RESOLVED (upstream);AAAA (example.org.);::1;NOERROR',
+  )
+  assert(semiSeparated, 'semicolon-separated line should parse')
+  assert.strictEqual(semiSeparated!.action, 'allow')
+  assert.strictEqual(semiSeparated!.domain, 'example.org')
+
   assert.strictEqual(parseBlockyCsvLine('garbage line'), null, 'garbage should not parse')
   assert.strictEqual(parseBlockyCsvLine(''), null, 'empty should not parse')
 

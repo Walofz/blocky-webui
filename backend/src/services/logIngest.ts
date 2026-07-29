@@ -37,8 +37,59 @@ let partialLine = ''
 let firstAttach = true
 let skipFirstPartial = false
 
+function splitCsvLike(line: string, delimiter: string): string[] {
+  const out: string[] = []
+  let cur = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (ch === delimiter && !inQuotes) {
+      out.push(cur)
+      cur = ''
+      continue
+    }
+
+    cur += ch
+  }
+
+  out.push(cur)
+  return out
+}
+
+function normalizeField(field: string): string {
+  const trimmed = field.trim()
+  if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) {
+    return trimmed.slice(1, -1).replace(/""/g, '"')
+  }
+  return trimmed
+}
+
+function parseFields(line: string): string[] {
+  const tab = line.includes('\t') ? line.split('\t') : []
+  if (tab.length >= 6) return tab.map(normalizeField)
+
+  const comma = splitCsvLike(line, ',')
+  if (comma.length >= 6) return comma.map(normalizeField)
+
+  const semi = splitCsvLike(line, ';')
+  if (semi.length >= 6) return semi.map(normalizeField)
+
+  return []
+}
+
 export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
-  const fields = line.split('\t')
+  const fields = parseFields(line)
   if (fields.length < 6) return null
 
   const [time, clientIP, , durationMs, reason, question] = fields
