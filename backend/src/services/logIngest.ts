@@ -161,9 +161,12 @@ export function startLogIngest(logDir?: string): void {
   const configDir = process.env.CONFIG_DIR ?? path.join(process.cwd(), '..', 'config')
   const dir = logDir ?? process.env.LOG_DIR ?? path.join(configDir, 'logs')
 
-  // Ensure the directory exists so Blocky's csv writer can create files in it
+  // Ensure the directory exists so Blocky's csv writer can create files in it.
+  // Blocky's docker image runs as a non-root user (uid 100), while this backend
+  // usually runs as root — make the dir world-writable so Blocky can create files.
   try {
     fs.mkdirSync(dir, { recursive: true })
+    fs.chmodSync(dir, 0o777)
   } catch {
     // ignore — Blocky may create it itself
   }

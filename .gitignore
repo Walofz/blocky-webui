@@ -2,6 +2,7 @@ node_modules/
 dist/
 .junie/
 .idea/
+.git/
 
 .env
 .env.local

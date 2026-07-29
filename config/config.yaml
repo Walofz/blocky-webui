@@ -2,13 +2,14 @@
 # Edit this file manually and restart Blocky to apply changes.
 # See: https://0xerr0r.github.io/blocky/configuration/
 
-upstream:
-  default:
-    - 8.8.8.8
-    - 1.1.1.1
+upstreams:
+  groups:
+    default:
+      - 8.8.8.8
+      - 1.1.1.1
 
 blocking:
-  blackLists: {}  # populated from custom.yaml by your integration script
+  denylists: {}  # populated from custom.yaml by your integration script
   clientGroupsBlock: {}
   blockType: nxDomain
 
@@ -23,6 +24,12 @@ queryLog:
   type: csv
   target: /app/config/logs
   logRetentionDays: 7
+  # Flush queued entries every 5s so the WebUI shows them near-realtime
+  # (Blocky's default is 30s)
+  flushInterval: 5s
 
-httpPort: 4000
-logLevel: info
+ports:
+  http: 4000
+
+log:
+  level: info

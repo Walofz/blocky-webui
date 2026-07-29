@@ -34,7 +34,7 @@ interface CustomConfig {
 // Blocky config — only the fields we generate; all other fields come from config.yaml base
 interface BlockyConfig {
   blocking?: {
-    blackLists?: Record<string, string[]>
+    denylists?: Record<string, string[]>
     clientGroupsBlock?: Record<string, string[]>
     blockType?: string
   }
@@ -66,11 +66,11 @@ function main() {
     base = yaml.load(fs.readFileSync(basePath, 'utf8')) as BlockyConfig
   }
 
-  // ─── Build blocking.blackLists ────────────────────────────────────────────
+  // ─── Build blocking.denylists ─────────────────────────────────────────────
   // Each ads profile becomes a named list group
-  const blackLists: Record<string, string[]> = {}
+  const denylists: Record<string, string[]> = {}
   for (const profile of custom.adsProfiles) {
-    blackLists[profile.name] = profile.blocklists
+    denylists[profile.name] = profile.blocklists
   }
 
   // ─── Build blocking.clientGroupsBlock ────────────────────────────────────
@@ -114,7 +114,7 @@ function main() {
     ...base,
     blocking: {
       ...(base.blocking ?? {}),
-      blackLists,
+      denylists,
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },
@@ -140,7 +140,7 @@ function main() {
   fs.renameSync(tmpPath, outPath)
 
   console.log(`Generated: ${outPath}`)
-  console.log(`  Ads profiles : ${custom.adsProfiles.length} (${Object.keys(blackLists).join(', ') || 'none'})`)
+  console.log(`  Ads profiles : ${custom.adsProfiles.length} (${Object.keys(denylists).join(', ') || 'none'})`)
   console.log(`  Groups       : ${custom.groups.length}`)
   console.log(`  Client rules : ${Object.keys(clientGroupsBlock).length}`)
   console.log(`  DNS A/AAAA   : ${Object.keys(mapping).length}`)

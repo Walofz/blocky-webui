@@ -35,7 +35,7 @@ A management web interface for [Blocky](https://0xerr0r.github.io/blocky/) — a
 ┌─── Host network ────────────────────────────┐
 │  [blocky]  port 53 (DNS) + 4000 (HTTP API)  │
 │     ↑ reads config.generated.yaml           │
-│     ↑ receives reload call from backend     │
+│     ↑ restarted by backend on config save   │
 └─────────────────────────────────────────────┘
          ↑ host.docker.internal:4000
 ┌─── Bridge network ──────────────────────────┐
@@ -93,9 +93,14 @@ UI save
   → validate (Zod + cross-field)
   → write custom.yaml  (atomic)
   → generate config.generated.yaml  (auto, same process)
-  → POST blocky:4000/api/config/reload
-  → Blocky reloads with new config
+  → restart the `blocky` container via the Docker socket
+  → Blocky starts with the new config
 ```
+
+> Blocky has **no config-reload HTTP endpoint**, so the backend restarts the
+> container through `/var/run/docker.sock` (mounted in `docker-compose.yml`).
+> Without the socket, it falls back to `POST /api/lists/refresh` (blocklists
+> only — other config changes then require a manual `docker compose restart blocky`).
 
 ---
 
@@ -170,6 +175,8 @@ CONFIG_DIR=/etc/blocky npm run dev
 | `PORT` | `4000` | Backend HTTP port |
 | `CONFIG_DIR` | `../config` | Directory containing `config.yaml` / `custom.yaml` |
 | `BLOCKY_URL` | *(unset)* | Base URL of live Blocky HTTP API (e.g. `http://192.168.1.1:4000`). When unset, demo mode activates. |
+| `BLOCKY_CONTAINER` | `blocky` | Name of the Blocky Docker container to restart when config changes |
+| `DOCKER_SOCK` | `/var/run/docker.sock` | Docker socket used to restart Blocky. If unavailable, falls back to `POST /api/lists/refresh`. |
 | `LOG_DIR` | `$CONFIG_DIR/logs` | Directory where Blocky writes its CSV query log files (tailed for realtime logs) |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
 
@@ -182,12 +189,13 @@ CONFIG_DIR=/etc/blocky npm run dev
    BLOCKY_URL=http://192.168.1.1:4000 npm run dev
    ```
 
-2. The backend will call `POST /api/config/reload` on Blocky after every save.
+2. After every save the backend restarts the Blocky container (`BLOCKY_CONTAINER`, via the Docker socket) so it picks up `config.generated.yaml`. Without a Docker socket, it calls `POST /api/lists/refresh` instead — then restart Blocky manually to apply group/DNS changes.
 
-3. **Config generation**: The current WebUI saves `custom.yaml` which is *separate* from the format Blocky reads. To bridge the gap, you need a small script (or a future WebUI feature) that converts `custom.yaml` into Blocky's native `blocking.blackLists`, `blocking.clientGroupsBlock`, and `customDNS.mapping` fields and writes them into `config.yaml` (or a merged file). A reference converter will be added in a follow-up.
+3. **Config generation**: On every save the backend converts `custom.yaml` into Blocky's native `blocking.denylists`, `blocking.clientGroupsBlock`, and `customDNS` fields and merges them with `config.yaml` into `config.generated.yaml` (`backend/src/generate-blocky-config.ts`, also available as `npm run generate`).
 
 4. **Log ingestion**: When `BLOCKY_URL` is set, the backend tails Blocky's CSV query log files and streams real entries to the UI:
-   - Blocky is configured with `queryLog: { type: csv, target: /app/config/logs }` (see `config/config.yaml`) — it writes one tab-separated file per day (`YYYY-MM-DD_ALL.log`) into the shared `./config/logs` directory
+   - Blocky is configured with `queryLog: { type: csv, target: /app/config/logs, flushInterval: 5s }` (see `config/config.yaml`) — it writes one tab-separated file per day (`YYYY-MM-DD_ALL.log`) into the shared `./config/logs` directory, flushing every 5 seconds
+   - The backend creates the `logs` directory world-writable, because Blocky's Docker image runs as a non-root user (uid 100) and must be able to create files in it
    - The backend polls the newest file every second, parses appended lines and pushes them to the SSE stream (`backend/src/services/logIngest.ts`)
    - Override the watched directory with the `LOG_DIR` environment variable if your Blocky writes logs elsewhere
    - Without `BLOCKY_URL`, demo mode keeps generating fake entries

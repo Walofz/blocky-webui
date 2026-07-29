@@ -4,6 +4,7 @@ services:
   # port 53 (DNS) and port 4000 (HTTP API) bind directly on the host
   blocky:
     image: spx01/blocky:latest
+    container_name: blocky
     restart: unless-stopped
     network_mode: host
     volumes:
@@ -22,11 +23,15 @@ services:
       # Reach Blocky's HTTP API across the host-network boundary.
       # extra_hosts below maps host.docker.internal → host-gateway on Linux.
       BLOCKY_URL: ${BLOCKY_URL:-http://host.docker.internal:4000}
+      # Container to restart when config changes (Blocky has no reload API)
+      BLOCKY_CONTAINER: blocky
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./config:/config
+      # Needed so the backend can restart the blocky container to apply config
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
       interval: 15s
