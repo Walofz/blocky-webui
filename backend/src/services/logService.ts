@@ -6,6 +6,8 @@ export interface LogEntry {
   timestamp: string
   clientIP: string
   domain: string
+  upstream?: string
+  resolvedIP?: string
   action: 'allow' | 'block'
   matchedList?: string
   matchedGroup?: string
@@ -116,6 +118,8 @@ export function startDemoLogs(): void {
       timestamp: new Date().toISOString(),
       clientIP: DEMO_IPS[Math.floor(Math.random() * DEMO_IPS.length)],
       domain,
+      upstream: action === 'allow' ? '1.1.1.1' : undefined,
+      resolvedIP: action === 'allow' ? '142.250.66.110' : '0.0.0.0',
       action,
       matchedList: action === 'block' ? DEMO_LISTS[Math.floor(Math.random() * DEMO_LISTS.length)] : undefined,
       matchedGroup: DEMO_GROUPS[Math.floor(Math.random() * DEMO_GROUPS.length)],

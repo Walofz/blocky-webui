@@ -28,6 +28,8 @@ export interface LogEntry {
   timestamp: string
   clientIP: string
   domain: string
+  upstream?: string
+  resolvedIP?: string
   action: 'allow' | 'block'
   matchedList?: string
   matchedGroup?: string

@@ -36,6 +36,8 @@ async function main() {
   assert.strictEqual(blocked!.matchedList, 'ads-basic')
   assert.strictEqual(blocked!.clientIP, '192.168.1.50')
   assert.strictEqual(blocked!.responseTime, 3)
+  assert.strictEqual(blocked!.upstream, undefined)
+  assert.strictEqual(blocked!.resolvedIP, '0.0.0.0')
 
   const allowed = parseBlockyCsvLine(
     ['2026-07-29 13:00:02', '10.0.0.5', 'laptop', '25', 'RESOLVED (upstream 8.8.8.8)', 'AAAA (github.com.)', '2606::1', 'NOERROR'].join('\t'),
@@ -44,6 +46,7 @@ async function main() {
   assert.strictEqual(allowed!.action, 'allow')
   assert.strictEqual(allowed!.domain, 'github.com')
   assert.strictEqual(allowed!.matchedList, undefined)
+  assert.strictEqual(allowed!.resolvedIP, '2606::1')
 
   const commaSeparated = parseBlockyCsvLine(
     '"2026-07-29 13:00:05","10.0.0.6","pc-1","9","BLOCKED (ads-pro)","A (analytics.google.com.)","0.0.0.0","NOERROR"',
@@ -67,6 +70,8 @@ async function main() {
   assert.strictEqual(plainDomainField!.action, 'allow')
   assert.strictEqual(plainDomainField!.domain, 'google.com')
   assert.strictEqual(plainDomainField!.clientIP, '127.0.0.1')
+  assert.strictEqual(plainDomainField!.upstream, '1.1.1.1')
+  assert.strictEqual(plainDomainField!.resolvedIP, '142.250.66.110')
 
   assert.strictEqual(parseBlockyCsvLine('garbage line'), null, 'garbage should not parse')
   assert.strictEqual(parseBlockyCsvLine(''), null, 'empty should not parse')

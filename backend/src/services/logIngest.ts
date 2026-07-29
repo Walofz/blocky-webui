@@ -109,6 +109,16 @@ export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
 
   const blocked = reason.toUpperCase().startsWith('BLOCKED')
   const listMatch = blocked ? reason.match(/\(([^)]+)\)/) : null
+  const upstreamMatch = reason.match(/\((?:tcp\+udp:)?((?:\d{1,3}\.){3}\d{1,3}|[a-f0-9:]+)\)/i)
+
+  let resolvedIP: string | undefined
+  const answer = fields[6] ?? ''
+  const answerMatch = answer.match(/\(([^)]+)\)/)
+  if (answerMatch) {
+    resolvedIP = answerMatch[1]
+  } else if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(answer) || answer.includes(':')) {
+    resolvedIP = answer
+  }
 
   const timestamp = new Date(time.replace(' ', 'T'))
 
@@ -116,6 +126,8 @@ export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
     timestamp: isNaN(timestamp.getTime()) ? new Date().toISOString() : timestamp.toISOString(),
     clientIP: clientIP || 'unknown',
     domain,
+    upstream: upstreamMatch ? upstreamMatch[1] : undefined,
+    resolvedIP,
     action: blocked ? 'block' : 'allow',
     matchedList: listMatch ? listMatch[1] : undefined,
     responseTime: durationMs ? parseInt(durationMs, 10) || 0 : undefined,

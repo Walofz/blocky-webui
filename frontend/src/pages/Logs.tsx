@@ -137,12 +137,14 @@ export default function Logs() {
             {liveMode ? 'Waiting for log events…' : 'No logs found'}
           </div>
         ) : (
-          <table className="w-full text-xs min-w-[800px]">
+          <table className="w-full text-xs min-w-[1000px]">
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
               <tr>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Time</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Client</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Domain</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">Upstream</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">Resolved IP</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Action</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Matched List</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Group</th>
@@ -164,6 +166,8 @@ export default function Logs() {
                   </td>
                   <td className="px-3 py-1.5 font-mono">{log.clientIP}</td>
                   <td className="px-3 py-1.5 font-mono">{log.domain}</td>
+                  <td className="px-3 py-1.5 font-mono text-gray-500">{log.upstream ?? '—'}</td>
+                  <td className="px-3 py-1.5 font-mono text-gray-500">{log.resolvedIP ?? '—'}</td>
                   <td className="px-3 py-1.5">
                     {log.action === 'block' ? (
                       <span className="badge-red flex items-center gap-1">
