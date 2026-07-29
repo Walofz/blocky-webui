@@ -35,6 +35,15 @@ export const GroupSchema = z.preprocess(
 )
 export type Group = z.infer<typeof GroupSchema>
 
+// ─── Upstreams ────────────────────────────────────────────────────────────────
+
+const upstreamRegex = /^(?:tcp\+udp:|udp:|tcp:)?(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?$/
+
+export const UpstreamSchema = z
+  .array(z.string().trim().regex(upstreamRegex, 'Upstream must be like 1.1.1.1, udp:1.1.1.1 or tcp+udp:1.1.1.1:53'))
+  .max(5, 'Upstream can have at most 5 entries')
+  .transform((items) => Array.from(new Set(items)))
+
 // ─── Custom DNS Records ───────────────────────────────────────────────────────
 
 const domainRegex = /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost$/
@@ -72,6 +81,7 @@ export const CustomConfigSchema = z.object({
   version: z.number().int().default(1),
   adsProfiles: z.array(AdsProfileSchema).default([]),
   groups: z.array(GroupSchema).default([]),
+  upstreams: UpstreamSchema.default([]),
   dnsRecords: z.array(DnsRecordSchema).default([]),
 })
 export type CustomConfig = z.infer<typeof CustomConfigSchema>

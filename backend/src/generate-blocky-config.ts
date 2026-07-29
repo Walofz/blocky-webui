@@ -24,6 +24,7 @@ interface CustomConfig {
   version: number
   adsProfiles: Array<{ name: string; blocklists: string[] }>
   groups: Array<{ name: string; adsProfiles?: string[]; adsProfile?: string; clients: string[] }>
+  upstreams?: string[]
   dnsRecords: Array<
     | { type: 'A'; domain: string; address: string }
     | { type: 'AAAA'; domain: string; address: string }
@@ -41,6 +42,9 @@ interface BlockyConfig {
   customDNS?: {
     mapping?: Record<string, string>
     rewrite?: Record<string, string>
+  }
+  upstreams?: {
+    groups?: Record<string, string[]>
   }
   [key: string]: unknown
 }
@@ -119,6 +123,17 @@ function main() {
       ...(Object.keys(mapping).length > 0 ? { mapping } : {}),
       ...(Object.keys(rewrite).length > 0 ? { rewrite } : {}),
     },
+    ...(custom.upstreams && custom.upstreams.length > 0
+      ? {
+          upstreams: {
+            ...(base.upstreams ?? {}),
+            groups: {
+              ...(base.upstreams?.groups ?? {}),
+              default: custom.upstreams,
+            },
+          },
+        }
+      : {}),
   }
 
   // ─── Write atomically ─────────────────────────────────────────────────────

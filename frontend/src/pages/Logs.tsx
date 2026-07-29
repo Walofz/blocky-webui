@@ -16,6 +16,12 @@ export default function Logs() {
   const [liveMode, setLiveMode] = useState(true)
   const [staticLogs, setStaticLogs] = useState<LogEntry[]>([])
   const [loadingStatic, setLoadingStatic] = useState(false)
+  const [upstreams, setUpstreams] = useState<string[]>([])
+  const [customUpstream, setCustomUpstream] = useState('')
+  const [savingUpstreams, setSavingUpstreams] = useState(false)
+  const [clearingLogs, setClearingLogs] = useState(false)
+
+  const UPSTREAM_PRESETS = ['1.1.1.1', '8.8.8.8', '9.9.9.9', '208.67.222.222', '94.140.14.14']
 
   const { logs: streamLogs, connected, clear } = useLogStream(
     liveMode ? filters : { domain: '', clientIP: '', group: '', action: '' }
@@ -40,10 +46,59 @@ export default function Logs() {
     if (!liveMode) loadStatic()
   }, [liveMode, filters])
 
+  useEffect(() => {
+    logsApi.getUpstreams().then(setUpstreams).catch(() => undefined)
+  }, [])
+
   const displayLogs = liveMode ? streamLogs : staticLogs
 
   const setFilter = (key: keyof Filters, val: string) =>
     setFilters((f) => ({ ...f, [key]: val }))
+
+  const togglePreset = (ip: string) => {
+    setUpstreams((prev) => {
+      if (prev.includes(ip)) return prev.filter((v) => v !== ip)
+      if (prev.length >= 5) return prev
+      return [...prev, ip]
+    })
+  }
+
+  const addCustomUpstream = () => {
+    const next = customUpstream.trim()
+    if (!next) return
+    setUpstreams((prev) => {
+      if (prev.includes(next) || prev.length >= 5) return prev
+      return [...prev, next]
+    })
+    setCustomUpstream('')
+  }
+
+  const saveUpstreams = async () => {
+    try {
+      setSavingUpstreams(true)
+      const saved = await logsApi.saveUpstreams(upstreams)
+      setUpstreams(saved)
+      alert('Saved upstreams')
+    } catch {
+      alert('Save upstreams failed')
+    } finally {
+      setSavingUpstreams(false)
+    }
+  }
+
+  const clearBackendLogs = async (clearFiles: boolean) => {
+    try {
+      setClearingLogs(true)
+      await logsApi.clear(clearFiles)
+      clear()
+      if (!liveMode) await loadStatic()
+      alert(clearFiles ? 'Cleared memory + log files' : 'Cleared memory logs')
+    } catch {
+      alert('Clear logs failed')
+    } finally {
+      setClearingLogs(false)
+    }
+  }
 
   return (
     <div className="p-6 flex flex-col h-[calc(100vh-0px)]">
@@ -86,6 +141,48 @@ export default function Logs() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-3">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h2 className="text-sm font-semibold text-gray-700">Upstreams ({upstreams.length}/5)</h2>
+          <button className="btn btn-primary" onClick={saveUpstreams} disabled={savingUpstreams || upstreams.length > 5}>
+            {savingUpstreams ? 'Saving…' : 'Save Upstreams'}
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {UPSTREAM_PRESETS.map((ip) => (
+            <button
+              key={ip}
+              className={clsx('btn btn-secondary text-xs', upstreams.includes(ip) && 'ring-2 ring-primary-500')}
+              onClick={() => togglePreset(ip)}
+              type="button"
+            >
+              {ip}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            className="input text-sm"
+            placeholder="Custom upstream e.g. tcp+udp:1.1.1.1"
+            value={customUpstream}
+            onChange={(e) => setCustomUpstream(e.target.value)}
+          />
+          <button className="btn btn-secondary" type="button" onClick={addCustomUpstream} disabled={upstreams.length >= 5}>
+            Add
+          </button>
+        </div>
+        {upstreams.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {upstreams.map((item) => (
+              <button key={item} className="badge-blue" onClick={() => setUpstreams((prev) => prev.filter((v) => v !== item))}>
+                {item} ×
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -182,9 +279,19 @@ export default function Logs() {
       </div>
 
       {liveMode && (
-        <p className="text-xs text-gray-400 mt-2">
-          Showing latest {displayLogs.length} events · SSE stream
-        </p>
+        <div className="flex items-center justify-between mt-2 gap-2">
+          <p className="text-xs text-gray-400">
+            Showing latest {displayLogs.length} events · SSE stream
+          </p>
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary" onClick={() => clearBackendLogs(false)} disabled={clearingLogs}>
+              Clear Memory Logs
+            </button>
+            <button className="btn-secondary" onClick={() => clearBackendLogs(true)} disabled={clearingLogs}>
+              Clear Log Files
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

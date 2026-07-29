@@ -30,6 +30,10 @@ groups:
       - "192.168.1.50"
       - "192.168.1.51"
 
+upstreams:
+  - "tcp+udp:1.1.1.1"
+  - "tcp+udp:8.8.8.8"
+
 dnsRecords:
   - type: "A"
     domain: "router.local"

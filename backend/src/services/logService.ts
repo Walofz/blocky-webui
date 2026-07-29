@@ -30,6 +30,12 @@ export function appendLog(entry: Omit<LogEntry, 'id'>): LogEntry {
   return fullEntry
 }
 
+export function clearLogs(): number {
+  const removed = logBuffer.length
+  logBuffer.length = 0
+  return removed
+}
+
 export function getRecentLogs(opts: {
   limit?: number
   domain?: string

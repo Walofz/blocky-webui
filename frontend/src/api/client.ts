@@ -110,6 +110,13 @@ export const dnsApi = {
 export const logsApi = {
   list: (params?: { domain?: string; clientIP?: string; group?: string; action?: string; limit?: number }) =>
     api.get<LogEntry[]>('/logs', { params }).then((r) => r.data),
+  clear: (clearFiles = false) =>
+    api.delete<{ cleared: boolean; removedBuffer: number; removedFiles: number }>('/logs', {
+      params: { files: clearFiles ? 'true' : 'false' },
+    }).then((r) => r.data),
+  getUpstreams: () => api.get<{ upstreams: string[] }>('/logs/upstreams').then((r) => r.data.upstreams),
+  saveUpstreams: (upstreams: string[]) =>
+    api.put<{ upstreams: string[] }>('/logs/upstreams', { upstreams }).then((r) => r.data.upstreams),
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

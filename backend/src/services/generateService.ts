@@ -14,6 +14,9 @@ interface BlockyConfig {
     mapping?: Record<string, string>
     rewrite?: Record<string, string>
   }
+  upstreams?: {
+    groups?: Record<string, string[]>
+  }
   [key: string]: unknown
 }
 
@@ -70,6 +73,17 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
       ...(Object.keys(mapping).length > 0 ? { mapping } : {}),
       ...(Object.keys(rewrite).length > 0 ? { rewrite } : {}),
     },
+    ...(custom.upstreams.length > 0
+      ? {
+          upstreams: {
+            ...(base.upstreams ?? {}),
+            groups: {
+              ...(base.upstreams?.groups ?? {}),
+              default: custom.upstreams,
+            },
+          },
+        }
+      : {}),
   }
 
   const header = [

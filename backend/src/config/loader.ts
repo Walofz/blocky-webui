@@ -11,6 +11,7 @@ const defaultConfig: CustomConfig = {
   version: 1,
   adsProfiles: [],
   groups: [],
+  upstreams: [],
   dnsRecords: [],
 }
 
