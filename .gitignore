@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .junie/
+.idea/
+
 .env
 .env.local
 *.log
