@@ -6,6 +6,7 @@ import AdsProfiles from './pages/AdsProfiles'
 import Groups from './pages/Groups'
 import CustomDNS from './pages/CustomDNS'
 import Logs from './pages/Logs'
+import ListFiles from './pages/ListFiles'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="ads-profiles" element={<AdsProfiles />} />
           <Route path="groups" element={<Groups />} />
           <Route path="dns" element={<CustomDNS />} />
+          <Route path="list-files" element={<ListFiles />} />
           <Route path="logs" element={<Logs />} />
         </Route>
       </Routes>

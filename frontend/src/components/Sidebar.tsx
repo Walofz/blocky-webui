@@ -5,6 +5,7 @@ import {
   ShieldCheck,
   Users,
   Globe,
+  FileText,
   ScrollText,
   Box,
 } from 'lucide-react'
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/ads-profiles', label: 'Ads Profiles', icon: ShieldCheck },
   { to: '/groups', label: 'Groups', icon: Users },
   { to: '/dns', label: 'Custom DNS', icon: Globe },
+  { to: '/list-files', label: 'List Files', icon: FileText },
   { to: '/logs', label: 'Realtime Logs', icon: ScrollText },
 ]
 

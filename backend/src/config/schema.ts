@@ -53,6 +53,18 @@ export const UpstreamSchema = z
   .max(5, 'Upstream can have at most 5 entries')
   .transform((items) => Array.from(new Set(items)))
 
+// ─── List Files ───────────────────────────────────────────────────────────────
+
+export const ListFilePayloadSchema = z.object({
+  fileName: z
+    .string()
+    .trim()
+    .min(1, 'File name is required')
+    .regex(/^[a-zA-Z0-9._-]+(?:\.txt)?$/, 'File name must contain only letters, numbers, dot, dash, underscore'),
+  content: z.string(),
+})
+export type ListFilePayload = z.infer<typeof ListFilePayloadSchema>
+
 // ─── Custom DNS Records ───────────────────────────────────────────────────────
 
 const domainRegex = /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost$/

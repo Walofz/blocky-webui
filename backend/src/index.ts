@@ -6,6 +6,7 @@ import groupsRouter from './routes/groups'
 import dnsRouter from './routes/dns'
 import logsRouter from './routes/logs'
 import dashboardRouter from './routes/dashboard'
+import listFilesRouter from './routes/listFiles'
 import { loadCustomConfig } from './config/loader'
 import { startDemoLogs } from './services/logService'
 import { startLogIngest } from './services/logIngest'
@@ -33,6 +34,7 @@ app.use('/api/groups', groupsRouter)
 app.use('/api/dns', dnsRouter)
 app.use('/api/logs', logsRouter)
 app.use('/api/dashboard', dashboardRouter)
+app.use('/api/list-files', listFilesRouter)
 
 // SSE logs stream is also accessible at /events/logs for convenience
 app.get('/events/logs', (req, res) => {

@@ -70,6 +70,23 @@ export interface DashboardData {
   }
 }
 
+export interface SavedListFile {
+  name: string
+  path: string
+  updatedAt: string
+}
+
+export interface SaveListFilePayload {
+  fileName: string
+  content: string
+}
+
+export interface SaveListFileResponse {
+  name: string
+  path: string
+  lines: number
+}
+
 // ─── Ads Profiles ─────────────────────────────────────────────────────────────
 
 export const adsProfilesApi = {
@@ -118,6 +135,14 @@ export const logsApi = {
   getUpstreams: () => api.get<{ upstreams: string[] }>('/logs/upstreams').then((r) => r.data.upstreams),
   saveUpstreams: (upstreams: string[]) =>
     api.put<{ upstreams: string[] }>('/logs/upstreams', { upstreams }).then((r) => r.data.upstreams),
+}
+
+// ─── List Files ───────────────────────────────────────────────────────────────
+
+export const listFilesApi = {
+  list: () => api.get<SavedListFile[]>('/list-files').then((r) => r.data),
+  save: (payload: SaveListFilePayload) =>
+    api.post<SaveListFileResponse>('/list-files', payload).then((r) => r.data),
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
