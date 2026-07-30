@@ -7,12 +7,12 @@ import { logsApi, LogEntry } from '../api/client'
 interface Filters {
   domain: string
   clientIP: string
-  group: string
-  action: string
+  status: string
+  recordType: string
 }
 
 export default function Logs() {
-  const [filters, setFilters] = useState<Filters>({ domain: '', clientIP: '', group: '', action: '' })
+  const [filters, setFilters] = useState<Filters>({ domain: '', clientIP: '', status: '', recordType: '' })
   const [liveMode, setLiveMode] = useState(true)
   const [staticLogs, setStaticLogs] = useState<LogEntry[]>([])
   const [loadingStatic, setLoadingStatic] = useState(false)
@@ -24,7 +24,7 @@ export default function Logs() {
   const UPSTREAM_PRESETS = ['1.1.1.1', '8.8.8.8', '9.9.9.9', '208.67.222.222', '94.140.14.14']
 
   const { logs: streamLogs, connected, clear } = useLogStream(
-    liveMode ? filters : { domain: '', clientIP: '', group: '', action: '' }
+    liveMode ? filters : { domain: '', clientIP: '', status: '', recordType: '' }
   )
 
   const loadStatic = async () => {
@@ -33,8 +33,8 @@ export default function Logs() {
       setStaticLogs(await logsApi.list({
         domain: filters.domain || undefined,
         clientIP: filters.clientIP || undefined,
-        group: filters.group || undefined,
-        action: filters.action || undefined,
+        status: filters.status || undefined,
+        recordType: filters.recordType || undefined,
         limit: 200,
       }))
     } finally {
@@ -201,18 +201,19 @@ export default function Logs() {
         />
         <input
           className="input text-sm"
-          placeholder="Filter group…"
-          value={filters.group}
-          onChange={(e) => setFilter('group', e.target.value)}
+          placeholder="Type (A, AAAA, CNAME...)"
+          value={filters.recordType}
+          onChange={(e) => setFilter('recordType', e.target.value.toUpperCase())}
         />
         <select
           className="input text-sm"
-          value={filters.action}
-          onChange={(e) => setFilter('action', e.target.value)}
+          value={filters.status}
+          onChange={(e) => setFilter('status', e.target.value)}
         >
-          <option value="">All actions</option>
-          <option value="allow">Allow</option>
-          <option value="block">Block</option>
+          <option value="">All statuses</option>
+          <option value="BLOCKED">BLOCKED</option>
+          <option value="RESOLVED">RESOLVED</option>
+          <option value="CACHED">CACHED</option>
         </select>
       </div>
 
@@ -233,9 +234,8 @@ export default function Logs() {
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Domain</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Upstream</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Resolved IP</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-500">Action</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-500">Matched List</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-500">Group</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">Status</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">Type</th>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">ms</th>
               </tr>
             </thead>
@@ -245,7 +245,7 @@ export default function Logs() {
                   key={log.id}
                   className={clsx(
                     'hover:bg-gray-50',
-                    log.action === 'block' ? 'bg-red-50/30' : ''
+                    log.status === 'BLOCKED' ? 'bg-red-50/30' : ''
                   )}
                 >
                   <td className="px-3 py-1.5 text-gray-400 whitespace-nowrap">
@@ -256,18 +256,21 @@ export default function Logs() {
                   <td className="px-3 py-1.5 font-mono text-gray-500">{log.upstream ?? '—'}</td>
                   <td className="px-3 py-1.5 font-mono text-gray-500">{log.resolvedIP ?? '—'}</td>
                   <td className="px-3 py-1.5">
-                    {log.action === 'block' ? (
+                    {log.status === 'BLOCKED' ? (
                       <span className="badge-red flex items-center gap-1">
-                        <ShieldOff size={10} /> Block
+                        <ShieldOff size={10} /> BLOCKED
+                      </span>
+                    ) : log.status === 'RESOLVED' ? (
+                      <span className="badge-green flex items-center gap-1">
+                        <ShieldCheck size={10} /> RESOLVED
                       </span>
                     ) : (
-                      <span className="badge-green flex items-center gap-1">
-                        <ShieldCheck size={10} /> Allow
+                      <span className="badge-blue flex items-center gap-1">
+                        <ShieldCheck size={10} /> {log.status || 'UNKNOWN'}
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-1.5 text-gray-500">{log.matchedList ?? '—'}</td>
-                  <td className="px-3 py-1.5 text-gray-500">{log.matchedGroup ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-gray-500">{log.recordType ?? '—'}</td>
                   <td className="px-3 py-1.5 text-gray-400">
                     {log.responseTime != null ? log.responseTime : '—'}
                   </td>

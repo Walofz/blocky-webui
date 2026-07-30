@@ -8,9 +8,9 @@ export interface LogEntry {
   domain: string
   upstream?: string
   resolvedIP?: string
+  status: string
+  recordType?: string
   action: 'allow' | 'block'
-  matchedList?: string
-  matchedGroup?: string
   responseTime?: number
 }
 
@@ -40,7 +40,8 @@ export function getRecentLogs(opts: {
   limit?: number
   domain?: string
   clientIP?: string
-  group?: string
+  status?: string
+  recordType?: string
   action?: 'allow' | 'block'
 }): LogEntry[] {
   let results = [...logBuffer]
@@ -52,8 +53,12 @@ export function getRecentLogs(opts: {
   if (opts.clientIP) {
     results = results.filter((l) => l.clientIP.includes(opts.clientIP!))
   }
-  if (opts.group) {
-    results = results.filter((l) => l.matchedGroup === opts.group)
+  if (opts.status) {
+    results = results.filter((l) => l.status === opts.status)
+  }
+  if (opts.recordType) {
+    const type = opts.recordType.toUpperCase()
+    results = results.filter((l) => l.recordType?.toUpperCase() === type)
   }
   if (opts.action) {
     results = results.filter((l) => l.action === opts.action)
@@ -66,7 +71,8 @@ export function getRecentLogs(opts: {
 export function streamLogsSSE(res: Response, filters: {
   domain?: string
   clientIP?: string
-  group?: string
+  status?: string
+  recordType?: string
   action?: 'allow' | 'block'
 }): () => void {
   res.setHeader('Content-Type', 'text/event-stream')
@@ -78,7 +84,8 @@ export function streamLogsSSE(res: Response, filters: {
     // Apply filters
     if (filters.domain && !entry.domain.toLowerCase().includes(filters.domain.toLowerCase())) return
     if (filters.clientIP && !entry.clientIP.includes(filters.clientIP)) return
-    if (filters.group && entry.matchedGroup !== filters.group) return
+    if (filters.status && entry.status !== filters.status) return
+    if (filters.recordType && entry.recordType?.toUpperCase() !== filters.recordType.toUpperCase()) return
     if (filters.action && entry.action !== filters.action) return
 
     res.write(`data: ${JSON.stringify(entry)}\n\n`)
@@ -110,8 +117,8 @@ const DEMO_DOMAINS = [
   'telemetry.microsoft.com', 'api.spotify.com', 'analytics.twitter.com',
 ]
 const DEMO_IPS = ['192.168.1.10', '192.168.1.20', '192.168.1.50', '10.0.0.5']
-const DEMO_GROUPS = ['default', 'kids', 'work']
-const DEMO_LISTS = ['ads-basic', 'ads-strict', 'tracking']
+const DEMO_STATUSES = ['CACHED', 'RESOLVED']
+const DEMO_TYPES = ['A', 'AAAA', 'CNAME']
 
 export function startDemoLogs(): void {
   if (process.env.BLOCKY_URL) return // Don't run demo if real Blocky is configured
@@ -119,16 +126,19 @@ export function startDemoLogs(): void {
 
   demoInterval = setInterval(() => {
     const domain = DEMO_DOMAINS[Math.floor(Math.random() * DEMO_DOMAINS.length)]
-    const action: 'allow' | 'block' = Math.random() > 0.4 ? 'block' : 'allow'
+    const blocked = Math.random() > 0.4
+    const status = blocked ? 'BLOCKED' : DEMO_STATUSES[Math.floor(Math.random() * DEMO_STATUSES.length)]
+    const action: 'allow' | 'block' = blocked ? 'block' : 'allow'
+    const recordType = DEMO_TYPES[Math.floor(Math.random() * DEMO_TYPES.length)]
     appendLog({
       timestamp: new Date().toISOString(),
       clientIP: DEMO_IPS[Math.floor(Math.random() * DEMO_IPS.length)],
       domain,
       upstream: action === 'allow' ? '1.1.1.1' : undefined,
       resolvedIP: action === 'allow' ? '142.250.66.110' : '0.0.0.0',
+      status,
+      recordType,
       action,
-      matchedList: action === 'block' ? DEMO_LISTS[Math.floor(Math.random() * DEMO_LISTS.length)] : undefined,
-      matchedGroup: DEMO_GROUPS[Math.floor(Math.random() * DEMO_GROUPS.length)],
       responseTime: Math.floor(Math.random() * 20),
     })
   }, 1200)

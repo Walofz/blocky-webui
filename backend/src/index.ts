@@ -38,12 +38,13 @@ app.use('/api/list-files', listFilesRouter)
 
 // SSE logs stream is also accessible at /events/logs for convenience
 app.get('/events/logs', (req, res) => {
-  const { domain, clientIP, group, action } = req.query as Record<string, string>
+  const { domain, clientIP, status, recordType, action } = req.query as Record<string, string>
   const { streamLogsSSE } = require('./services/logService')
   streamLogsSSE(res, {
     domain,
     clientIP,
-    group,
+    status,
+    recordType,
     action: action === 'allow' || action === 'block' ? action : undefined,
   })
 })

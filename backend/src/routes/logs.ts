@@ -11,12 +11,13 @@ const LOG_DIR = process.env.LOG_DIR ?? path.join(process.env.CONFIG_DIR ?? path.
 
 // GET /api/logs — recent logs (with optional filters)
 router.get('/', (req: Request, res: Response) => {
-  const { domain, clientIP, group, action, limit } = req.query as Record<string, string>
+  const { domain, clientIP, status, recordType, action, limit } = req.query as Record<string, string>
 
   const logs = getRecentLogs({
     domain,
     clientIP,
-    group,
+    status,
+    recordType,
     action: action === 'allow' || action === 'block' ? action : undefined,
     limit: limit ? parseInt(limit, 10) : undefined,
   })
@@ -64,12 +65,13 @@ router.put('/upstreams', async (req: Request, res: Response, next: NextFunction)
 
 // GET /events/logs — SSE stream
 router.get('/stream', (req: Request, res: Response) => {
-  const { domain, clientIP, group, action } = req.query as Record<string, string>
+  const { domain, clientIP, status, recordType, action } = req.query as Record<string, string>
 
   streamLogsSSE(res, {
     domain,
     clientIP,
-    group,
+    status,
+    recordType,
     action: action === 'allow' || action === 'block' ? action : undefined,
   })
 })

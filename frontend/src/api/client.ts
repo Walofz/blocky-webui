@@ -31,9 +31,9 @@ export interface LogEntry {
   domain: string
   upstream?: string
   resolvedIP?: string
+  status: string
+  recordType?: string
   action: 'allow' | 'block'
-  matchedList?: string
-  matchedGroup?: string
   responseTime?: number
 }
 
@@ -132,7 +132,7 @@ export const dnsApi = {
 // ─── Logs ─────────────────────────────────────────────────────────────────────
 
 export const logsApi = {
-  list: (params?: { domain?: string; clientIP?: string; group?: string; action?: string; limit?: number }) =>
+  list: (params?: { domain?: string; clientIP?: string; status?: string; recordType?: string; action?: string; limit?: number }) =>
     api.get<LogEntry[]>('/logs', { params }).then((r) => r.data),
   clear: (clearFiles = false) =>
     api.delete<{ cleared: boolean; removedBuffer: number; removedFiles: number }>('/logs', {

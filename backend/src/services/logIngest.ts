@@ -92,27 +92,27 @@ function looksLikeTimestamp(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(value)
 }
 
-function extractMatchedGroup(rawValue: string, clientIP: string): string | undefined {
-  const raw = rawValue.trim()
-  if (!raw) return undefined
-
-  const explicitGroupMatch = raw.match(/(?:^|[;,\s])group\s*[:=]\s*([^;,"]+)/i)
-  if (explicitGroupMatch?.[1]) {
-    const group = explicitGroupMatch[1].trim()
-    if (group) return group
-  }
-
-  const parts = raw.split(';').map((p) => p.trim()).filter(Boolean)
-  const firstNonIp = parts.find((p) => p !== clientIP)
-  return firstNonIp ?? parts[0]
+function extractStatus(reason: string): string {
+  const match = reason.trim().toUpperCase().match(/^([A-Z_]+)/)
+  return match?.[1] ?? 'UNKNOWN'
 }
 
-function extractMatchedList(reason: string): string | undefined {
-  const byParen = reason.match(/\(([^)]+)\)/)
-  if (byParen?.[1]) return byParen[1].trim()
+function extractTypeToken(value: string): string | undefined {
+  const token = value.trim().match(/^([A-Z0-9]+)\s*\(/i)?.[1]
+  return token ? token.toUpperCase() : undefined
+}
 
-  const byNamedField = reason.match(/(?:list|denylist|allowlist)\s*[:=]\s*([^,;\s]+)/i)
-  if (byNamedField?.[1]) return byNamedField[1].trim()
+function extractRecordType(question: string, answer: string, payload: string[]): string | undefined {
+  const fromQuestion = extractTypeToken(question)
+  if (fromQuestion) return fromQuestion
+
+  const fromTail = payload[8]?.trim().toUpperCase()
+  if (fromTail && /^(A|AAAA|CNAME|MX|TXT|NS|PTR|SRV|SOA|HTTPS|SVCB)$/.test(fromTail)) {
+    return fromTail
+  }
+
+  const fromAnswer = extractTypeToken(answer)
+  if (fromAnswer) return fromAnswer
 
   return undefined
 }
@@ -130,7 +130,6 @@ export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
 
   const time = hasTimestamp ? fields[0] : ''
   const clientIP = (payload[0] ?? '').trim()
-  const groupCandidate = payload[1] ?? ''
   const durationMs = isLegacyOrder ? payload[2] : payload[5]
   const reason = (isLegacyOrder ? payload[3] : payload[2]) ?? ''
   const question = (payload[4] ?? '').trim()
@@ -149,9 +148,9 @@ export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
   }
   domain = domain.replace(/\.$/, '')
 
-  const blocked = reason.toUpperCase().startsWith('BLOCKED')
-  const matchedGroup = extractMatchedGroup(groupCandidate, clientIP)
-  const matchedList = blocked ? extractMatchedList(reason) : undefined
+  const status = extractStatus(reason)
+  const blocked = status === 'BLOCKED'
+  const recordType = extractRecordType(question, answer, payload)
   const upstreamMatch = reason.match(/\((?:tcp\+udp:)?((?:\d{1,3}\.){3}\d{1,3}|[a-f0-9:]+)\)/i)
 
   let resolvedIP: string | undefined
@@ -170,9 +169,9 @@ export function parseBlockyCsvLine(line: string): Omit<LogEntry, 'id'> | null {
     domain,
     upstream: upstreamMatch ? upstreamMatch[1] : undefined,
     resolvedIP,
+    status,
+    recordType,
     action: blocked ? 'block' : 'allow',
-    matchedList,
-    matchedGroup,
     responseTime: durationMs ? parseInt(durationMs, 10) || 0 : undefined,
   }
 }

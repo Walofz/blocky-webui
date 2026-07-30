@@ -4,7 +4,8 @@ import { LogEntry } from '../api/client'
 interface SSEFilters {
   domain?: string
   clientIP?: string
-  group?: string
+  status?: string
+  recordType?: string
   action?: string
 }
 
@@ -16,11 +17,12 @@ export function useLogStream(filters: SSEFilters, maxEntries = 500) {
     const params = new URLSearchParams()
     if (filters.domain) params.set('domain', filters.domain)
     if (filters.clientIP) params.set('clientIP', filters.clientIP)
-    if (filters.group) params.set('group', filters.group)
+    if (filters.status) params.set('status', filters.status)
+    if (filters.recordType) params.set('recordType', filters.recordType)
     if (filters.action) params.set('action', filters.action)
     const qs = params.toString()
     return `/events/logs${qs ? `?${qs}` : ''}`
-  }, [filters.domain, filters.clientIP, filters.group, filters.action])
+  }, [filters.domain, filters.clientIP, filters.status, filters.recordType, filters.action])
 
   useEffect(() => {
     const url = buildUrl()

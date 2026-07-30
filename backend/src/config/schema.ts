@@ -128,14 +128,6 @@ export function validateCustomConfig(config: CustomConfig): string[] {
         errors.push(`Group "${group.name}" references unknown ads profile "${profileName}"`)
       }
     }
-
-    const hasAllowProfile = group.adsProfiles.some((profileName) => profileTypeByName.get(profileName) === 'allow')
-    const hasBlockProfile = group.adsProfiles.some((profileName) => profileTypeByName.get(profileName) !== 'allow')
-    if (hasAllowProfile && hasBlockProfile) {
-      errors.push(
-        `Group "${group.name}" mixes allow and block profiles. Separate allow profile into a dedicated group to avoid ALLOWLIST ONLY behavior.`,
-      )
-    }
   }
 
   // Duplicate profile names

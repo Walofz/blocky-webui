@@ -20,11 +20,6 @@ export default function Groups() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const selectedProfiles = profiles.filter((p) => form.adsProfiles.includes(p.name))
-  const hasAllowProfile = selectedProfiles.some((p) => p.type === 'allow')
-  const hasBlockProfile = selectedProfiles.some((p) => p.type !== 'allow')
-  const hasMixedProfileTypes = hasAllowProfile && hasBlockProfile
-
   const load = async () => {
     try {
       setLoading(true)
@@ -58,11 +53,6 @@ export default function Groups() {
     try {
       setSaving(true)
       setError(null)
-
-      if (hasMixedProfileTypes) {
-        setError('This group mixes allowlist and blocklist profiles. Split them into separate groups to avoid ALLOWLIST ONLY behavior.')
-        return
-      }
 
       const clients = form.clients.split('\n').map((c) => c.trim()).filter(Boolean)
       const group: Group = { name: form.name.trim(), adsProfiles: form.adsProfiles, clients }
@@ -147,11 +137,6 @@ export default function Groups() {
                     </label>
                   ))}
                 </div>
-              )}
-              {hasMixedProfileTypes && (
-                <p className="text-xs text-red-600 mt-2">
-                  Mixed allowlist + blocklist in one group will trigger ALLOWLIST ONLY behavior in Blocky.
-                </p>
               )}
             </div>
 
