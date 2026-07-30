@@ -9,11 +9,18 @@ export const AdsProfileSchema = z.preprocess(
     if (obj.type !== undefined) return v
     return { ...obj, type: 'block' }
   },
-  z.object({
-    name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
-    type: z.enum(['block', 'allow']).default('block'),
-    blocklists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).min(1),
-  }),
+  z.discriminatedUnion('type', [
+    z.object({
+      name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
+      type: z.literal('block'),
+      blocklists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).default([]),
+    }),
+    z.object({
+      name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
+      type: z.literal('allow'),
+      blocklists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).default([]),
+    }),
+  ]),
 )
 export type AdsProfile = z.infer<typeof AdsProfileSchema>
 
@@ -120,6 +127,13 @@ export function validateCustomConfig(config: CustomConfig): string[] {
   const profileNames = new Set(config.adsProfiles.map((p) => p.name))
   const profileTypeByName = new Map(config.adsProfiles.map((p) => [p.name, p.type]))
   const groupNames = new Set(config.groups.map((g) => g.name))
+
+  const hasAnyNonEmptyProfileSource = config.adsProfiles.some((profile) =>
+    profile.blocklists.some((entry) => entry.trim().length > 0),
+  )
+  if (config.adsProfiles.length > 0 && !hasAnyNonEmptyProfileSource) {
+    errors.push('At least one blocklist or allowlist entry is required')
+  }
 
   // Groups reference existing profiles
   for (const group of config.groups) {

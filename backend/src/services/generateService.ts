@@ -83,9 +83,13 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     const sources = normalizeProfileSources(profileType, profile.blocklists)
 
     if (profileType === 'allow') {
-      allowlists[profile.name] = sources
+      if (sources.length > 0) {
+        allowlists[profile.name] = sources
+      }
     } else {
-      denylists[profile.name] = sources
+      if (sources.length > 0) {
+        denylists[profile.name] = sources
+      }
     }
   }
 
@@ -121,8 +125,8 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     ...base,
     blocking: {
       ...(base.blocking ?? {}),
-      denylists,
-      allowlists,
+      denylists: Object.keys(denylists).length > 0 ? denylists : undefined,
+      allowlists: Object.keys(allowlists).length > 0 ? allowlists : undefined,
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },

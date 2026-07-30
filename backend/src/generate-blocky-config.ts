@@ -142,9 +142,13 @@ function main() {
     const sources = normalizeProfileSources(profileType, profile.blocklists)
 
     if (profileType === 'allow') {
-      allowlists[profile.name] = sources
+      if (sources.length > 0) {
+        allowlists[profile.name] = sources
+      }
     } else {
-      denylists[profile.name] = sources
+      if (sources.length > 0) {
+        denylists[profile.name] = sources
+      }
     }
   }
 
@@ -188,7 +192,7 @@ function main() {
     ...base,
     blocking: {
       ...(base.blocking ?? {}),
-      denylists,
+      ...(Object.keys(denylists).length > 0 ? { denylists } : {}),
       ...(Object.keys(allowlists).length > 0 ? { allowlists } : {}),
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',

@@ -19,6 +19,11 @@ function main() {
         blocklists: ['https://example.com/ads.txt'],
       },
       {
+        name: 'allow-empty',
+        type: 'allow',
+        blocklists: [],
+      },
+      {
         name: 'allow-pr',
         type: 'allow',
         blocklists: ['pornhub.com', 'pornhub.org'],
@@ -27,7 +32,7 @@ function main() {
     groups: [
       {
         name: 'ads',
-        adsProfiles: ['ads-basic', 'allow-pr'],
+        adsProfiles: ['ads-basic', 'allow-empty', 'allow-pr'],
         clients: ['127.0.0.1'],
       },
     ],
@@ -47,7 +52,8 @@ function main() {
 
   assert(generated.blocking.denylists?.['ads-basic'], 'ads-basic should be generated under denylists')
   assert(generated.blocking.allowlists?.['allow-pr'], 'allow-pr should be generated under allowlists')
-  assert.deepStrictEqual(generated.blocking.clientGroupsBlock?.['127.0.0.1'], ['ads-basic', 'allow-pr'])
+  assert(!generated.blocking.allowlists?.['allow-empty'], 'empty allow profile should not be generated under allowlists')
+  assert.deepStrictEqual(generated.blocking.clientGroupsBlock?.['127.0.0.1'], ['ads-basic', 'allow-empty', 'allow-pr'])
   assert.strictEqual(generated.blocking.allowlists?.['allow-pr'][0], 'pornhub.com\npornhub.org\n')
 
   fs.rmSync(tempDir, { recursive: true, force: true })
