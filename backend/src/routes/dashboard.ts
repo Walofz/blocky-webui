@@ -9,7 +9,7 @@ const router = Router()
 router.get('/', async (_req: Request, res: Response) => {
   const config = loadCustomConfig()
   const status = await getBlockyStatus()
-  const allLogs = getRecentLogs({ limit: 1000 })
+  const allLogs = getRecentLogs({ limit: 999999 })
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const totalQueries = allLogs.length
