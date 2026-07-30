@@ -15,7 +15,7 @@ export interface LogEntry {
 }
 
 // In-memory ring buffer for recent logs (last 1000 entries)
-const MAX_LOG_ENTRIES = 1000
+const MAX_LOG_ENTRIES = 999999
 const logBuffer: LogEntry[] = []
 const logEmitter = new EventEmitter()
 logEmitter.setMaxListeners(50)
