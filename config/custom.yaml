@@ -22,6 +22,7 @@ adsProfiles:
     type: "allow"
     blocklists:
       - "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
+      - "example.com"
 
 groups:
   - name: "default"

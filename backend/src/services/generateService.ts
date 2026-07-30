@@ -21,6 +21,25 @@ interface BlockyConfig {
   [key: string]: unknown
 }
 
+const DOMAIN_ENTRY_REGEX = /^(?:\*\.)?(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\.?$|^localhost\.?$/i
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function isDomainEntry(value: string): boolean {
+  return DOMAIN_ENTRY_REGEX.test(value.trim())
+}
+
+function safeProfileFileName(profileName: string): string {
+  return profileName.replace(/[^a-zA-Z0-9_-]/g, '_')
+}
+
 export function generateBlockyConfig(custom: CustomConfig, configDir: string): string {
   const basePath = path.join(configDir, 'config.yaml')
   const outPath = path.join(configDir, 'config.generated.yaml')
@@ -31,13 +50,34 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
   }
 
   // blocking.denylists / blocking.allowlists — one entry per ads profile
+  // supports mixed sources: URL lists + manual domain lines
   const denylists: Record<string, string[]> = {}
   const allowlists: Record<string, string[]> = {}
+  const generatedListsDir = path.join(configDir, 'generated-lists')
+  fs.mkdirSync(generatedListsDir, { recursive: true })
+
+  for (const file of fs.readdirSync(generatedListsDir)) {
+    if (file.startsWith('profile-') && file.endsWith('.txt')) {
+      fs.rmSync(path.join(generatedListsDir, file), { force: true })
+    }
+  }
+
   for (const profile of custom.adsProfiles) {
+    const urls = profile.blocklists.filter(isHttpUrl)
+    const domains = profile.blocklists.filter((value) => !isHttpUrl(value) && isDomainEntry(value))
+
+    const sources = [...urls]
+    if (domains.length > 0) {
+      const fileName = `profile-${safeProfileFileName(profile.name)}.txt`
+      const relativePath = `generated-lists/${fileName}`
+      fs.writeFileSync(path.join(generatedListsDir, fileName), domains.map((d) => d.trim()).join('\n') + '\n', 'utf8')
+      sources.push(relativePath)
+    }
+
     if (profile.type === 'allow') {
-      allowlists[profile.name] = profile.blocklists
+      allowlists[profile.name] = sources
     } else {
-      denylists[profile.name] = profile.blocklists
+      denylists[profile.name] = sources
     }
   }
 

@@ -85,7 +85,7 @@ export default function AdsProfiles() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Ads Profiles</h1>
-          <p className="text-sm text-gray-500 mt-1">Named profiles with mapped blocklist URLs</p>
+          <p className="text-sm text-gray-500 mt-1">Named profiles with list sources (URL) or manual domains</p>
         </div>
         <button className="btn-primary" onClick={openCreate}>
           <Plus size={16} /> New Profile
@@ -121,11 +121,11 @@ export default function AdsProfiles() {
               </select>
             </div>
             <div>
-              <label className="label">List URLs (one per line)</label>
+              <label className="label">List Sources / Domains (one per line)</label>
               <textarea
                 className="input font-mono text-xs"
                 rows={5}
-                placeholder="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+                placeholder={"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts\nexample.com"}
                 value={form.blocklists}
                 onChange={(e) => setForm((f) => ({ ...f, blocklists: e.target.value }))}
               />
@@ -174,7 +174,7 @@ export default function AdsProfiles() {
 
               {expanded === p.name && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs font-medium text-gray-500 mb-2">{p.type === 'allow' ? 'Allowlist URLs' : 'Blocklist URLs'}</p>
+                  <p className="text-xs font-medium text-gray-500 mb-2">{p.type === 'allow' ? 'Allowlist Sources / Domains' : 'Blocklist Sources / Domains'}</p>
                   <ul className="space-y-1">
                     {p.blocklists.map((url) => (
                       <li key={url} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all">
