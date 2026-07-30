@@ -2,10 +2,19 @@ import { z } from 'zod'
 
 // ─── Ads Profile ──────────────────────────────────────────────────────────────
 
-export const AdsProfileSchema = z.object({
-  name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
-  blocklists: z.array(z.string().url('Each blocklist must be a valid URL')).min(1),
-})
+export const AdsProfileSchema = z.preprocess(
+  (v) => {
+    if (!v || typeof v !== 'object') return v
+    const obj = v as { type?: unknown }
+    if (obj.type !== undefined) return v
+    return { ...obj, type: 'block' }
+  },
+  z.object({
+    name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
+    type: z.enum(['block', 'allow']).default('block'),
+    blocklists: z.array(z.string().url('Each list URL must be a valid URL')).min(1),
+  }),
+)
 export type AdsProfile = z.infer<typeof AdsProfileSchema>
 
 // ─── Group ────────────────────────────────────────────────────────────────────

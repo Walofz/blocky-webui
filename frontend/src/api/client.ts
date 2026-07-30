@@ -9,6 +9,7 @@ const api = axios.create({
 
 export interface AdsProfile {
   name: string
+  type: 'block' | 'allow'
   blocklists: string[]
 }
 

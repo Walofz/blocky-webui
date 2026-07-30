@@ -6,6 +6,7 @@ import { CustomConfig } from '../config/schema'
 interface BlockyConfig {
   blocking?: {
     denylists?: Record<string, string[]>
+    allowlists?: Record<string, string[]>
     blackLists?: Record<string, string[]>
     clientGroupsBlock?: Record<string, string[]>
     blockType?: string
@@ -29,10 +30,15 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     base = yaml.load(fs.readFileSync(basePath, 'utf8')) as BlockyConfig
   }
 
-  // blocking.denylists — one entry per ads profile
+  // blocking.denylists / blocking.allowlists — one entry per ads profile
   const denylists: Record<string, string[]> = {}
+  const allowlists: Record<string, string[]> = {}
   for (const profile of custom.adsProfiles) {
-    denylists[profile.name] = profile.blocklists
+    if (profile.type === 'allow') {
+      allowlists[profile.name] = profile.blocklists
+    } else {
+      denylists[profile.name] = profile.blocklists
+    }
   }
 
   // blocking.clientGroupsBlock — map clients → profile names
@@ -65,6 +71,7 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     blocking: {
       ...(base.blocking ?? {}),
       denylists,
+      ...(Object.keys(allowlists).length > 0 ? { allowlists } : {}),
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },

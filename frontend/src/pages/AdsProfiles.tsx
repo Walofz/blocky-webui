@@ -4,10 +4,11 @@ import { adsProfilesApi, AdsProfile } from '../api/client'
 
 interface FormState {
   name: string
+  type: 'block' | 'allow'
   blocklists: string
 }
 
-const emptyForm: FormState = { name: '', blocklists: '' }
+const emptyForm: FormState = { name: '', type: 'block', blocklists: '' }
 
 export default function AdsProfiles() {
   const [profiles, setProfiles] = useState<AdsProfile[]>([])
@@ -41,7 +42,7 @@ export default function AdsProfiles() {
 
   const openEdit = (p: AdsProfile) => {
     setEditing(p.name)
-    setForm({ name: p.name, blocklists: p.blocklists.join('\n') })
+    setForm({ name: p.name, type: p.type ?? 'block', blocklists: p.blocklists.join('\n') })
     setShowForm(true)
     setError(null)
   }
@@ -51,7 +52,7 @@ export default function AdsProfiles() {
       setSaving(true)
       setError(null)
       const blocklists = form.blocklists.split('\n').map((l) => l.trim()).filter(Boolean)
-      const profile: AdsProfile = { name: form.name.trim(), blocklists }
+      const profile: AdsProfile = { name: form.name.trim(), type: form.type, blocklists }
 
       if (editing) {
         await adsProfilesApi.update(editing, profile)
@@ -109,7 +110,18 @@ export default function AdsProfiles() {
               />
             </div>
             <div>
-              <label className="label">Blocklist URLs (one per line)</label>
+              <label className="label">Profile Type</label>
+              <select
+                className="input"
+                value={form.type}
+                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as 'block' | 'allow' }))}
+              >
+                <option value="block">Blocklist</option>
+                <option value="allow">Allowlist</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">List URLs (one per line)</label>
               <textarea
                 className="input font-mono text-xs"
                 rows={5}
@@ -147,6 +159,7 @@ export default function AdsProfiles() {
                 >
                   {expanded === p.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   <span className="font-semibold">{p.name}</span>
+                  <span className={p.type === 'allow' ? 'badge-green' : 'badge-blue'}>{p.type === 'allow' ? 'allowlist' : 'blocklist'}</span>
                   <span className="badge-blue">{p.blocklists.length} lists</span>
                 </button>
                 <div className="flex gap-1">
@@ -161,7 +174,7 @@ export default function AdsProfiles() {
 
               {expanded === p.name && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs font-medium text-gray-500 mb-2">Blocklist URLs</p>
+                  <p className="text-xs font-medium text-gray-500 mb-2">{p.type === 'allow' ? 'Allowlist URLs' : 'Blocklist URLs'}</p>
                   <ul className="space-y-1">
                     {p.blocklists.map((url) => (
                       <li key={url} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all">

@@ -22,7 +22,7 @@ import yaml from 'js-yaml'
 
 interface CustomConfig {
   version: number
-  adsProfiles: Array<{ name: string; blocklists: string[] }>
+  adsProfiles: Array<{ name: string; type?: 'block' | 'allow'; blocklists: string[] }>
   groups: Array<{ name: string; adsProfiles?: string[]; adsProfile?: string; clients: string[] }>
   upstreams?: string[]
   dnsRecords: Array<
@@ -36,6 +36,7 @@ interface CustomConfig {
 interface BlockyConfig {
   blocking?: {
     denylists?: Record<string, string[]>
+    allowlists?: Record<string, string[]>
     clientGroupsBlock?: Record<string, string[]>
     blockType?: string
   }
@@ -70,11 +71,16 @@ function main() {
     base = yaml.load(fs.readFileSync(basePath, 'utf8')) as BlockyConfig
   }
 
-  // ─── Build blocking.denylists ─────────────────────────────────────────────
-  // Each ads profile becomes a named list group
+  // ─── Build blocking.denylists / blocking.allowlists ───────────────────────
+  // Each ads profile becomes a named list group by type
   const denylists: Record<string, string[]> = {}
+  const allowlists: Record<string, string[]> = {}
   for (const profile of custom.adsProfiles) {
-    denylists[profile.name] = profile.blocklists
+    if (profile.type === 'allow') {
+      allowlists[profile.name] = profile.blocklists
+    } else {
+      denylists[profile.name] = profile.blocklists
+    }
   }
 
   // ─── Build blocking.clientGroupsBlock ────────────────────────────────────
@@ -115,6 +121,7 @@ function main() {
     blocking: {
       ...(base.blocking ?? {}),
       denylists,
+      ...(Object.keys(allowlists).length > 0 ? { allowlists } : {}),
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },
