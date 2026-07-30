@@ -21,6 +21,49 @@ interface BlockyConfig {
   [key: string]: unknown
 }
 
+const URL_SCHEME_RE = /^[a-z][a-z0-9+.-]*:\/\//i
+const WINDOWS_ABS_PATH_RE = /^[a-zA-Z]:[\\/]/
+const REGEX_LITERAL_RE = /^\/.*\/[a-z]*$/i
+
+function isExternalListSource(entry: string): boolean {
+  if (URL_SCHEME_RE.test(entry)) return true
+  if (WINDOWS_ABS_PATH_RE.test(entry)) return true
+  if (entry.startsWith('./') || entry.startsWith('../') || entry.startsWith('.\\') || entry.startsWith('..\\')) return true
+  if (entry.startsWith('~/') || entry.startsWith('~\\')) return true
+  if (entry.startsWith('\\')) return true
+  if (entry.startsWith('/') && !REGEX_LITERAL_RE.test(entry)) return true
+  return false
+}
+
+function normalizeProfileSources(profileType: 'block' | 'allow', blocklists: string[]): string[] {
+  const normalized = blocklists
+    .map((entry) => entry.replace(/\r/g, '').trim())
+    .filter((entry) => entry.length > 0)
+
+  const sources: string[] = []
+  const inlineEntries: string[] = []
+
+  for (const entry of normalized) {
+    if (entry.includes('\n')) {
+      sources.push(`${entry}\n`)
+      continue
+    }
+
+    if (profileType === 'allow' && !isExternalListSource(entry)) {
+      inlineEntries.push(entry)
+      continue
+    }
+
+    sources.push(entry)
+  }
+
+  if (inlineEntries.length > 0) {
+    sources.push(`${inlineEntries.join('\n')}\n`)
+  }
+
+  return sources
+}
+
 export function generateBlockyConfig(custom: CustomConfig, configDir: string): string {
   const basePath = path.join(configDir, 'config.yaml')
   const outPath = path.join(configDir, 'config.generated.yaml')
@@ -36,9 +79,10 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
   const allowlists: Record<string, string[]> = {}
 
   for (const profile of custom.adsProfiles) {
-    const sources = profile.blocklists.map((entry) => entry.trim()).filter((entry) => entry.length > 0)
+    const profileType = profile.type === 'allow' ? 'allow' : 'block'
+    const sources = normalizeProfileSources(profileType, profile.blocklists)
 
-    if (profile.type === 'allow') {
+    if (profileType === 'allow') {
       allowlists[profile.name] = sources
     } else {
       denylists[profile.name] = sources
