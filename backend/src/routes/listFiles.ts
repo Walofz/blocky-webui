@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express'
-import { ListFilePayloadSchema } from '../config/schema'
+import { ListFileNameSchema, ListFilePayloadSchema } from '../config/schema'
 import { CONFIG_DIR } from '../config/loader'
-import { listSavedListFiles, saveListFile } from '../services/listFileService'
+import { listSavedListFiles, readSavedListFile, saveListFile } from '../services/listFileService'
 
 const router = Router()
 
@@ -9,6 +9,21 @@ const router = Router()
 router.get('/', (_req: Request, res: Response) => {
   const files = listSavedListFiles(CONFIG_DIR)
   res.json(files)
+})
+
+// GET /api/list-files/:name
+router.get('/:name', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const fileName = ListFileNameSchema.parse(req.params.name)
+    const file = readSavedListFile(CONFIG_DIR, fileName)
+    res.json(file)
+  } catch (err) {
+    if (err instanceof Error && (err.message === 'List file not found' || err.message === 'Invalid file path')) {
+      res.status(err.message === 'List file not found' ? 404 : 400).json({ error: err.message })
+      return
+    }
+    next(err)
+  }
 })
 
 // POST /api/list-files

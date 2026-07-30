@@ -15,6 +15,12 @@ export interface SaveListFileResult {
   lines: number
 }
 
+export interface SavedListFileDetail {
+  name: string
+  path: string
+  content: string
+}
+
 function ensureTxtName(fileName: string): string {
   return TXT_EXT_RE.test(fileName) ? fileName : `${fileName}.txt`
 }
@@ -29,6 +35,15 @@ function normalizeContent(content: string): string[] {
 
 function resolveListDir(configDir: string): string {
   return path.resolve(path.join(configDir, 'lists'))
+}
+
+function resolveTargetPath(listDir: string, fileName: string): { normalizedName: string; targetPath: string } {
+  const normalizedName = ensureTxtName(fileName.trim())
+  const targetPath = path.resolve(path.join(listDir, normalizedName))
+  if (!targetPath.startsWith(listDir + path.sep) && targetPath !== listDir) {
+    throw new Error('Invalid file path')
+  }
+  return { normalizedName, targetPath }
 }
 
 export function listSavedListFiles(configDir: string): ListFileInfo[] {
@@ -54,11 +69,7 @@ export function saveListFile(configDir: string, fileName: string, content: strin
   const listDir = resolveListDir(configDir)
   fs.mkdirSync(listDir, { recursive: true })
 
-  const normalizedName = ensureTxtName(fileName.trim())
-  const targetPath = path.resolve(path.join(listDir, normalizedName))
-  if (!targetPath.startsWith(listDir + path.sep) && targetPath !== listDir) {
-    throw new Error('Invalid file path')
-  }
+  const { normalizedName, targetPath } = resolveTargetPath(listDir, fileName)
 
   const lines = normalizeContent(content)
   if (lines.length === 0) {
@@ -71,5 +82,20 @@ export function saveListFile(configDir: string, fileName: string, content: strin
     name: normalizedName,
     path: `/app/config/lists/${normalizedName}`,
     lines: lines.length,
+  }
+}
+
+export function readSavedListFile(configDir: string, fileName: string): SavedListFileDetail {
+  const listDir = resolveListDir(configDir)
+  const { normalizedName, targetPath } = resolveTargetPath(listDir, fileName)
+
+  if (!fs.existsSync(targetPath)) {
+    throw new Error('List file not found')
+  }
+
+  return {
+    name: normalizedName,
+    path: `/app/config/lists/${normalizedName}`,
+    content: fs.readFileSync(targetPath, 'utf8').replace(/\r/g, '').replace(/\n$/, ''),
   }
 }

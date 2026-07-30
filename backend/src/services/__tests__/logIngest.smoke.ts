@@ -35,6 +35,7 @@ async function main() {
   assert.strictEqual(blocked!.domain, 'ads.google.com')
   assert.strictEqual(blocked!.matchedList, 'ads-basic')
   assert.strictEqual(blocked!.clientIP, '192.168.1.50')
+  assert.strictEqual(blocked!.matchedGroup, undefined)
   assert.strictEqual(blocked!.responseTime, 3)
   assert.strictEqual(blocked!.upstream, undefined)
   assert.strictEqual(blocked!.resolvedIP, '0.0.0.0')
@@ -46,7 +47,18 @@ async function main() {
   assert.strictEqual(allowed!.action, 'allow')
   assert.strictEqual(allowed!.domain, 'github.com')
   assert.strictEqual(allowed!.matchedList, undefined)
+  assert.strictEqual(allowed!.matchedGroup, 'laptop')
   assert.strictEqual(allowed!.resolvedIP, '2606::1')
+
+  const modernOrder = parseBlockyCsvLine(
+    ['2026-07-29 13:00:02', '10.0.0.8', 'group=allow-pr;client=phone', 'BLOCKED (allow-pr)', '0.0.0.0', 'A (pornhub.com.)', '7'].join('\t'),
+  )
+  assert(modernOrder, 'modern queryLog fields order should parse')
+  assert.strictEqual(modernOrder!.action, 'block')
+  assert.strictEqual(modernOrder!.domain, 'pornhub.com')
+  assert.strictEqual(modernOrder!.matchedList, 'allow-pr')
+  assert.strictEqual(modernOrder!.matchedGroup, 'allow-pr')
+  assert.strictEqual(modernOrder!.responseTime, 7)
 
   const commaSeparated = parseBlockyCsvLine(
     '"2026-07-29 13:00:05","10.0.0.6","pc-1","9","BLOCKED (ads-pro)","A (analytics.google.com.)","0.0.0.0","NOERROR"',

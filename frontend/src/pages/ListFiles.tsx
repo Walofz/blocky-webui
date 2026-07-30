@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Save, FileText } from 'lucide-react'
+import { Save, FileText, Pencil } from 'lucide-react'
 import { listFilesApi, SavedListFile } from '../api/client'
 
 export default function ListFiles() {
@@ -9,6 +9,7 @@ export default function ListFiles() {
   const [files, setFiles] = useState<SavedListFile[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [loadingFileName, setLoadingFileName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
@@ -31,12 +32,28 @@ export default function ListFiles() {
       setSaving(true)
       setError(null)
       const saved = await listFilesApi.save({ fileName, content })
+      setFileName(saved.name)
       setSavedPath(saved.path)
       await load()
     } catch (e: unknown) {
       setError(getErrorMsg(e))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleEdit = async (name: string) => {
+    try {
+      setError(null)
+      setLoadingFileName(name)
+      const file = await listFilesApi.get(name)
+      setFileName(file.name)
+      setContent(file.content)
+      setSavedPath(file.path)
+    } catch (e: unknown) {
+      setError(getErrorMsg(e))
+    } finally {
+      setLoadingFileName(null)
     }
   }
 
@@ -99,8 +116,20 @@ export default function ListFiles() {
           <ul className="space-y-2">
             {files.map((file) => (
               <li key={file.name} className="rounded border border-gray-200 px-3 py-2">
-                <p className="font-mono text-xs text-gray-700">{file.path}</p>
-                <p className="text-xs text-gray-500 mt-1">updated: {new Date(file.updatedAt).toLocaleString()}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-xs text-gray-700">{file.path}</p>
+                    <p className="text-xs text-gray-500 mt-1">updated: {new Date(file.updatedAt).toLocaleString()}</p>
+                  </div>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => handleEdit(file.name)}
+                    disabled={loadingFileName === file.name}
+                  >
+                    <Pencil size={14} /> {loadingFileName === file.name ? 'Loading...' : 'Edit'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

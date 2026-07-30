@@ -65,6 +65,12 @@ export const ListFilePayloadSchema = z.object({
 })
 export type ListFilePayload = z.infer<typeof ListFilePayloadSchema>
 
+export const ListFileNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'File name is required')
+  .regex(/^[a-zA-Z0-9._-]+(?:\.txt)?$/, 'File name must contain only letters, numbers, dot, dash, underscore')
+
 // ─── Custom DNS Records ───────────────────────────────────────────────────────
 
 const domainRegex = /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost$/

@@ -87,6 +87,12 @@ export interface SaveListFileResponse {
   lines: number
 }
 
+export interface SavedListFileDetail {
+  name: string
+  path: string
+  content: string
+}
+
 // ─── Ads Profiles ─────────────────────────────────────────────────────────────
 
 export const adsProfilesApi = {
@@ -141,6 +147,7 @@ export const logsApi = {
 
 export const listFilesApi = {
   list: () => api.get<SavedListFile[]>('/list-files').then((r) => r.data),
+  get: (name: string) => api.get<SavedListFileDetail>(`/list-files/${encodeURIComponent(name)}`).then((r) => r.data),
   save: (payload: SaveListFilePayload) =>
     api.post<SaveListFileResponse>('/list-files', payload).then((r) => r.data),
 }
