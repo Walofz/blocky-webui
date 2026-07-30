@@ -100,6 +100,7 @@ export type CustomConfig = z.infer<typeof CustomConfigSchema>
 export function validateCustomConfig(config: CustomConfig): string[] {
   const errors: string[] = []
   const profileNames = new Set(config.adsProfiles.map((p) => p.name))
+  const profileTypeByName = new Map(config.adsProfiles.map((p) => [p.name, p.type]))
   const groupNames = new Set(config.groups.map((g) => g.name))
 
   // Groups reference existing profiles
@@ -108,6 +109,14 @@ export function validateCustomConfig(config: CustomConfig): string[] {
       if (!profileNames.has(profileName)) {
         errors.push(`Group "${group.name}" references unknown ads profile "${profileName}"`)
       }
+    }
+
+    const hasAllowProfile = group.adsProfiles.some((profileName) => profileTypeByName.get(profileName) === 'allow')
+    const hasBlockProfile = group.adsProfiles.some((profileName) => profileTypeByName.get(profileName) !== 'allow')
+    if (hasAllowProfile && hasBlockProfile) {
+      errors.push(
+        `Group "${group.name}" mixes allow and block profiles. Separate allow profile into a dedicated group to avoid ALLOWLIST ONLY behavior.`,
+      )
     }
   }
 
