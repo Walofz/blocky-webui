@@ -5,22 +5,22 @@ import { z } from 'zod'
 export const AdsProfileSchema = z.preprocess(
   (v) => {
     if (!v || typeof v !== 'object') return v
-    const obj = v as { type?: unknown }
-    if (obj.type !== undefined) return v
-    return { ...obj, type: 'block' }
+    const obj = v as { type?: unknown; blocklists?: unknown; allowlists?: unknown }
+    if (obj.allowlists !== undefined) return v
+
+    const blocklists = Array.isArray(obj.blocklists) ? obj.blocklists : []
+    if (obj.type === 'allow') {
+      return { ...obj, blocklists: [], allowlists: blocklists }
+    }
+
+    return { ...obj, blocklists, allowlists: [] }
   },
-  z.discriminatedUnion('type', [
-    z.object({
+  z
+    .object({
       name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
-      type: z.literal('block'),
       blocklists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).default([]),
+      allowlists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).default([]),
     }),
-    z.object({
-      name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
-      type: z.literal('allow'),
-      blocklists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).default([]),
-    }),
-  ]),
 )
 export type AdsProfile = z.infer<typeof AdsProfileSchema>
 
@@ -125,15 +125,7 @@ export type CustomConfig = z.infer<typeof CustomConfigSchema>
 export function validateCustomConfig(config: CustomConfig): string[] {
   const errors: string[] = []
   const profileNames = new Set(config.adsProfiles.map((p) => p.name))
-  const profileTypeByName = new Map(config.adsProfiles.map((p) => [p.name, p.type]))
   const groupNames = new Set(config.groups.map((g) => g.name))
-
-  const hasAnyNonEmptyProfileSource = config.adsProfiles.some((profile) =>
-    profile.blocklists.some((entry) => entry.trim().length > 0),
-  )
-  if (config.adsProfiles.length > 0 && !hasAnyNonEmptyProfileSource) {
-    errors.push('At least one blocklist or allowlist entry is required')
-  }
 
   // Groups reference existing profiles
   for (const group of config.groups) {
@@ -141,6 +133,15 @@ export function validateCustomConfig(config: CustomConfig): string[] {
       if (!profileNames.has(profileName)) {
         errors.push(`Group "${group.name}" references unknown ads profile "${profileName}"`)
       }
+    }
+  }
+
+  // Ads profiles must have at least one list source (block or allow)
+  for (const profile of config.adsProfiles) {
+    const hasBlock = profile.blocklists.some((entry) => entry.trim().length > 0)
+    const hasAllow = profile.allowlists.some((entry) => entry.trim().length > 0)
+    if (!hasBlock && !hasAllow) {
+      errors.push(`Profile "${profile.name}" must include at least one blocklist or allowlist entry`)
     }
   }
 

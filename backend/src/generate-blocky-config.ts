@@ -22,7 +22,7 @@ import yaml from 'js-yaml'
 
 interface CustomConfig {
   version: number
-  adsProfiles: Array<{ name: string; type?: 'block' | 'allow'; blocklists: string[] }>
+  adsProfiles: Array<{ name: string; type?: 'block' | 'allow'; blocklists?: string[]; allowlists?: string[] }>
   groups: Array<{ name: string; adsProfiles?: string[]; adsProfile?: string; clients: string[] }>
   upstreams?: string[]
   dnsRecords: Array<
@@ -111,6 +111,19 @@ function normalizeProfileSources(profileType: 'block' | 'allow', blocklists: str
   return sources
 }
 
+function resolveProfileLists(profile: { type?: 'block' | 'allow'; blocklists?: string[]; allowlists?: string[] }): { blocklists: string[]; allowlists: string[] } {
+  const blocklists = Array.isArray(profile.blocklists) ? profile.blocklists : []
+  if (Array.isArray(profile.allowlists)) {
+    return { blocklists, allowlists: profile.allowlists }
+  }
+
+  if (profile.type === 'allow') {
+    return { blocklists: [], allowlists: blocklists }
+  }
+
+  return { blocklists, allowlists: [] }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main() {
@@ -138,17 +151,15 @@ function main() {
   const allowlists: Record<string, string[]> = {}
 
   for (const profile of custom.adsProfiles) {
-    const profileType = profile.type === 'allow' ? 'allow' : 'block'
-    const sources = normalizeProfileSources(profileType, profile.blocklists)
+    const profileLists = resolveProfileLists(profile)
+    const denySources = normalizeProfileSources('block', profileLists.blocklists)
+    const allowSources = normalizeProfileSources('allow', profileLists.allowlists)
 
-    if (profileType === 'allow') {
-      if (sources.length > 0) {
-        allowlists[profile.name] = sources
-      }
-    } else {
-      if (sources.length > 0) {
-        denylists[profile.name] = sources
-      }
+    if (denySources.length > 0) {
+      denylists[profile.name] = denySources
+    }
+    if (allowSources.length > 0) {
+      allowlists[profile.name] = allowSources
     }
   }
 

@@ -15,18 +15,18 @@ function main() {
     adsProfiles: [
       {
         name: 'ads-basic',
-        type: 'block',
         blocklists: ['https://example.com/ads.txt'],
+        allowlists: [],
       },
       {
         name: 'allow-empty',
-        type: 'allow',
         blocklists: [],
+        allowlists: [],
       },
       {
         name: 'allow-pr',
-        type: 'allow',
-        blocklists: ['pornhub.com', 'pornhub.org'],
+        blocklists: [],
+        allowlists: ['pornhub.com', 'pornhub.org'],
       },
     ],
     groups: [

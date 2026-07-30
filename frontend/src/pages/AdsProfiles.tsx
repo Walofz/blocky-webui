@@ -4,11 +4,35 @@ import { adsProfilesApi, AdsProfile } from '../api/client'
 
 interface FormState {
   name: string
-  type: 'block' | 'allow'
   blocklists: string
+  allowlists: string
 }
 
-const emptyForm: FormState = { name: '', type: 'block', blocklists: '' }
+const emptyForm: FormState = { name: '', blocklists: '', allowlists: '' }
+
+function normalizeProfile(profile: AdsProfile & { type?: 'block' | 'allow' }): AdsProfile {
+  if (Array.isArray(profile.allowlists)) {
+    return {
+      name: profile.name,
+      blocklists: Array.isArray(profile.blocklists) ? profile.blocklists : [],
+      allowlists: profile.allowlists,
+    }
+  }
+
+  if (profile.type === 'allow') {
+    return {
+      name: profile.name,
+      blocklists: [],
+      allowlists: Array.isArray(profile.blocklists) ? profile.blocklists : [],
+    }
+  }
+
+  return {
+    name: profile.name,
+    blocklists: Array.isArray(profile.blocklists) ? profile.blocklists : [],
+    allowlists: [],
+  }
+}
 
 function parseDefinitionsInput(input: string): string[] {
   const lines = input.replace(/\r/g, '').split('\n')
@@ -84,7 +108,8 @@ export default function AdsProfiles() {
   const load = async () => {
     try {
       setLoading(true)
-      setProfiles(await adsProfilesApi.list())
+      const data = await adsProfilesApi.list()
+      setProfiles(data.map((profile) => normalizeProfile(profile as AdsProfile & { type?: 'block' | 'allow' })))
     } catch {
       setError('Failed to load profiles')
     } finally {
@@ -103,7 +128,11 @@ export default function AdsProfiles() {
 
   const openEdit = (p: AdsProfile) => {
     setEditing(p.name)
-    setForm({ name: p.name, type: p.type ?? 'block', blocklists: formatDefinitionsInput(p.blocklists) })
+    setForm({
+      name: p.name,
+      blocklists: formatDefinitionsInput(p.blocklists ?? []),
+      allowlists: formatDefinitionsInput(p.allowlists ?? []),
+    })
     setShowForm(true)
     setError(null)
   }
@@ -113,7 +142,14 @@ export default function AdsProfiles() {
       setSaving(true)
       setError(null)
       const blocklists = parseDefinitionsInput(form.blocklists)
-      const profile: AdsProfile = { name: form.name.trim(), type: form.type, blocklists }
+      const allowlists = parseDefinitionsInput(form.allowlists)
+
+      if (blocklists.length === 0 && allowlists.length === 0) {
+        setError('Please provide at least one Blocklist or Allowlist entry')
+        return
+      }
+
+      const profile: AdsProfile = { name: form.name.trim(), blocklists, allowlists }
 
       if (editing) {
         await adsProfilesApi.update(editing, profile)
@@ -171,24 +207,24 @@ export default function AdsProfiles() {
               />
             </div>
             <div>
-              <label className="label">Profile Type</label>
-              <select
-                className="input"
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as 'block' | 'allow' }))}
-              >
-                <option value="block">Blocklist</option>
-                <option value="allow">Allowlist</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">List Definitions</label>
+              <label className="label">Blocklist Definitions</label>
               <textarea
                 className="input font-mono text-xs"
                 rows={8}
-                placeholder={"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts\n/path/to/file.txt\nexample.com\n/^banners?[_.-]/\n|\n  # inline definition\n  allowlistdomain.com"}
+                placeholder={"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts\n/path/to/file.txt\nexample.com\n/^banners?[_.-]/\n|\n  # inline definition\n  someadsdomain.com"}
                 value={form.blocklists}
                 onChange={(e) => setForm((f) => ({ ...f, blocklists: e.target.value }))}
+              />
+              <p className="text-xs text-gray-500 mt-1">Leave empty if you do not want to save blocklists in this profile.</p>
+            </div>
+            <div>
+              <label className="label">Allowlist Definitions</label>
+              <textarea
+                className="input font-mono text-xs"
+                rows={8}
+                placeholder={"https://example.com/allow.txt\n/app/config/lists/allow-pr.txt\nallowdomain.com\n|\n  # inline definition\n  allowlistdomain.com"}
+                value={form.allowlists}
+                onChange={(e) => setForm((f) => ({ ...f, allowlists: e.target.value }))}
               />
               <p className="text-xs text-gray-500 mt-1">One entry per line. For multi-line inline definition, start with <code>|</code> then indent its lines.</p>
             </div>
@@ -221,8 +257,8 @@ export default function AdsProfiles() {
                 >
                   {expanded === p.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   <span className="font-semibold">{p.name}</span>
-                  <span className={p.type === 'allow' ? 'badge-green' : 'badge-blue'}>{p.type === 'allow' ? 'allowlist' : 'blocklist'}</span>
-                  <span className="badge-blue">{p.blocklists.length} lists</span>
+                  <span className="badge-blue">Block {p.blocklists.length}</span>
+                  <span className="badge-green">Allow {p.allowlists.length}</span>
                 </button>
                 <div className="flex gap-1">
                   <button className="btn-secondary px-2 py-1" onClick={() => openEdit(p)}>
@@ -236,14 +272,31 @@ export default function AdsProfiles() {
 
               {expanded === p.name && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs font-medium text-gray-500 mb-2">{p.type === 'allow' ? 'Allowlist Definitions' : 'Blocklist Definitions'}</p>
-                  <ul className="space-y-1">
-                    {p.blocklists.map((entry, index) => (
-                      <li key={`${p.name}-${index}`} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all whitespace-pre-wrap">
-                        {entry}
-                      </li>
-                    ))}
-                  </ul>
+                  {p.blocklists.length > 0 && (
+                    <>
+                      <p className="text-xs font-medium text-gray-500 mb-2">Blocklist Definitions</p>
+                      <ul className="space-y-1 mb-3">
+                        {p.blocklists.map((entry, index) => (
+                          <li key={`${p.name}-block-${index}`} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all whitespace-pre-wrap">
+                            {entry}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+
+                  {p.allowlists.length > 0 && (
+                    <>
+                      <p className="text-xs font-medium text-gray-500 mb-2">Allowlist Definitions</p>
+                      <ul className="space-y-1">
+                        {p.allowlists.map((entry, index) => (
+                          <li key={`${p.name}-allow-${index}`} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all whitespace-pre-wrap">
+                            {entry}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </div>
               )}
             </div>
