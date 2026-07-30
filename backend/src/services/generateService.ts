@@ -85,12 +85,20 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
   const clientGroupsBlock: Record<string, string[]> = {}
   for (const group of custom.groups) {
     const profileNames = Array.from(new Set(group.adsProfiles))
+    const blockProfileNames = profileNames.filter((profileName) => {
+      const profile = custom.adsProfiles.find((p) => p.name === profileName)
+      return profile?.type !== 'allow'
+    })
+
+    if (blockProfileNames.length === 0) {
+      continue
+    }
 
     if (group.clients.length === 0) {
-      clientGroupsBlock['default'] = profileNames
+      clientGroupsBlock['default'] = blockProfileNames
     } else {
       for (const client of group.clients) {
-        clientGroupsBlock[client] = profileNames
+        clientGroupsBlock[client] = blockProfileNames
       }
     }
   }

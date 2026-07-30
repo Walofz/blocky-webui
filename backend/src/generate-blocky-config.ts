@@ -129,13 +129,21 @@ function main() {
 
   for (const group of custom.groups) {
     const listNames = Array.from(new Set(group.adsProfiles ?? (group.adsProfile ? [group.adsProfile] : [])))
+    const blockListNames = listNames.filter((profileName) => {
+      const profile = custom.adsProfiles.find((p) => p.name === profileName)
+      return profile?.type !== 'allow'
+    })
+
+    if (blockListNames.length === 0) {
+      continue
+    }
 
     if (group.clients.length === 0) {
       // No explicit clients → apply as "default" group (catches all unmatched clients)
-      clientGroupsBlock['default'] = listNames
+      clientGroupsBlock['default'] = blockListNames
     } else {
       for (const client of group.clients) {
-        clientGroupsBlock[client] = listNames
+        clientGroupsBlock[client] = blockListNames
       }
     }
   }
