@@ -71,7 +71,7 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     blocking: {
       ...(base.blocking ?? {}),
       denylists,
-      ...(Object.keys(allowlists).length > 0 ? { allowlists } : {}),
+      allowlists,
       clientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },
