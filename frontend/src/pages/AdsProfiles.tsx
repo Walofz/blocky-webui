@@ -10,6 +10,67 @@ interface FormState {
 
 const emptyForm: FormState = { name: '', type: 'block', blocklists: '' }
 
+function parseDefinitionsInput(input: string): string[] {
+  const lines = input.replace(/\r/g, '').split('\n')
+  const entries: string[] = []
+
+  let i = 0
+  while (i < lines.length) {
+    const raw = lines[i]
+    const trimmed = raw.trim()
+
+    if (!trimmed) {
+      i += 1
+      continue
+    }
+
+    if (trimmed === '|') {
+      i += 1
+      const blockLines: string[] = []
+
+      while (i < lines.length) {
+        const blockRaw = lines[i]
+        if (!blockRaw.trim()) {
+          i += 1
+          break
+        }
+
+        if (!/^\s/.test(blockRaw)) {
+          break
+        }
+
+        blockLines.push(blockRaw.replace(/^\s{1,2}/, ''))
+        i += 1
+      }
+
+      if (blockLines.length > 0) {
+        entries.push(blockLines.join('\n').trim())
+      }
+      continue
+    }
+
+    entries.push(trimmed)
+    i += 1
+  }
+
+  return entries.filter((entry) => entry.length > 0)
+}
+
+function formatDefinitionsInput(entries: string[]): string {
+  return entries
+    .map((entry) => {
+      if (!entry.includes('\n')) {
+        return entry
+      }
+      const block = entry
+        .split('\n')
+        .map((line) => `  ${line}`)
+        .join('\n')
+      return `|\n${block}`
+    })
+    .join('\n')
+}
+
 export default function AdsProfiles() {
   const [profiles, setProfiles] = useState<AdsProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,7 +103,7 @@ export default function AdsProfiles() {
 
   const openEdit = (p: AdsProfile) => {
     setEditing(p.name)
-    setForm({ name: p.name, type: p.type ?? 'block', blocklists: p.blocklists.join('\n') })
+    setForm({ name: p.name, type: p.type ?? 'block', blocklists: formatDefinitionsInput(p.blocklists) })
     setShowForm(true)
     setError(null)
   }
@@ -51,7 +112,7 @@ export default function AdsProfiles() {
     try {
       setSaving(true)
       setError(null)
-      const blocklists = form.blocklists.split('\n').map((l) => l.trim()).filter(Boolean)
+      const blocklists = parseDefinitionsInput(form.blocklists)
       const profile: AdsProfile = { name: form.name.trim(), type: form.type, blocklists }
 
       if (editing) {
@@ -121,15 +182,15 @@ export default function AdsProfiles() {
               </select>
             </div>
             <div>
-              <label className="label">List Definitions (one per line)</label>
+              <label className="label">List Definitions</label>
               <textarea
                 className="input font-mono text-xs"
-                rows={5}
-                placeholder={"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts\n/path/to/file.txt\nexample.com\n/^banners?[_.-]/"}
+                rows={8}
+                placeholder={"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts\n/path/to/file.txt\nexample.com\n/^banners?[_.-]/\n|\n  # inline definition\n  allowlistdomain.com"}
                 value={form.blocklists}
                 onChange={(e) => setForm((f) => ({ ...f, blocklists: e.target.value }))}
               />
-              <p className="text-xs text-gray-500 mt-1">For multi-line inline YAML definitions, edit in custom.yaml directly.</p>
+              <p className="text-xs text-gray-500 mt-1">One entry per line. For multi-line inline definition, start with <code>|</code> then indent its lines.</p>
             </div>
           </div>
 
@@ -177,9 +238,9 @@ export default function AdsProfiles() {
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <p className="text-xs font-medium text-gray-500 mb-2">{p.type === 'allow' ? 'Allowlist Definitions' : 'Blocklist Definitions'}</p>
                   <ul className="space-y-1">
-                    {p.blocklists.map((url) => (
-                      <li key={url} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all">
-                        {url}
+                    {p.blocklists.map((entry, index) => (
+                      <li key={`${p.name}-${index}`} className="text-xs font-mono text-gray-600 bg-gray-50 rounded px-2 py-1 break-all whitespace-pre-wrap">
+                        {entry}
                       </li>
                     ))}
                   </ul>

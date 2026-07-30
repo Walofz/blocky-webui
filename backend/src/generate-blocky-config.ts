@@ -77,7 +77,10 @@ function main() {
   const allowlists: Record<string, string[]> = {}
 
   for (const profile of custom.adsProfiles) {
-    const sources = profile.blocklists.map((entry) => entry.trim()).filter((entry) => entry.length > 0)
+    const sources = profile.blocklists
+      .map((entry) => entry.replace(/\r/g, '').trim())
+      .filter((entry) => entry.length > 0)
+      .map((entry) => (entry.includes('\n') ? `${entry}\n` : entry))
 
     if (profile.type === 'allow') {
       allowlists[profile.name] = sources
