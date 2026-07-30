@@ -10,6 +10,12 @@ adsProfiles:
     blocklists:
       - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
       - "https://adaway.org/hosts.txt"
+      - "/etc/blocky/lists/local-deny.txt"
+      - "/^banners?[_.-]/"
+      - |
+        # inline definition
+        someadsdomain.com
+        anotheradsdomain.com
 
   - name: "ads-strict"
     type: "block"
@@ -23,6 +29,9 @@ adsProfiles:
     blocklists:
       - "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
       - "example.com"
+      - |
+        # inline allowlist definition
+        allowlistdomain.com
 
 groups:
   - name: "default"

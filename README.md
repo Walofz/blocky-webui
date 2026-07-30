@@ -9,7 +9,7 @@ A management web interface for [Blocky](https://0xerr0r.github.io/blocky/) — a
 | Page | Description |
 |------|-------------|
 | **Dashboard** | Query stats, block rate, top blocked domains, top clients, timeline chart (1h/24h/7d), group health, system status |
-| **Ads Profiles** | Named profiles mapping to list URLs and/or manual domains, selectable as blocklist or allowlist |
+| **Ads Profiles** | Named profiles mapping to Blocky definitions (URL/path/domain/regex/inline), selectable as blocklist or allowlist |
 | **Groups** | Client groups mapped to one or more ads profiles (by client IP/range) |
 | **Custom DNS** | Manage A, AAAA, CNAME records with validation (CNAME loop detection) |
 | **Realtime Logs** | SSE-streamed DNS query log with domain/client/group/action filters and quick-allowlist action |
@@ -191,7 +191,7 @@ CONFIG_DIR=/etc/blocky npm run dev
 
 2. After every save the backend restarts the Blocky container (`BLOCKY_CONTAINER`, via the Docker socket) so it picks up `config.generated.yaml`. Without a Docker socket, it calls `POST /api/lists/refresh` instead — then restart Blocky manually to apply group/DNS changes.
 
-3. **Config generation**: On every save the backend converts `custom.yaml` into Blocky's native `blocking.denylists` / `blocking.allowlists`, `blocking.clientGroupsBlock`, and `customDNS` fields and merges them with `config.yaml` into `config.generated.yaml` (`backend/src/generate-blocky-config.ts`, also available as `npm run generate`).
+3. **Config generation**: On every save the backend converts `custom.yaml` into Blocky's native `blocking.denylists` / `blocking.allowlists`, `blocking.clientGroupsBlock`, and `customDNS` fields and merges them with `config.yaml` into `config.generated.yaml` (`backend/src/generate-blocky-config.ts`, also available as `npm run generate`). Ads profile list entries are passed through as Blocky definitions (for example URL, file path, inline YAML literal content, regex, or domain).
 
 4. **Log ingestion**: When `BLOCKY_URL` is set, the backend tails Blocky's CSV query log files and streams real entries to the UI:
    - Blocky is configured with `queryLog: { type: csv, target: /app/config/logs, flushInterval: 5s }` (see `config/config.yaml`) — it writes one tab-separated file per day (`YYYY-MM-DD_ALL.log`) into the shared `./config/logs` directory, flushing every 5 seconds

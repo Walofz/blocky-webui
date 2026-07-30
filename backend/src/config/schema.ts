@@ -12,25 +12,7 @@ export const AdsProfileSchema = z.preprocess(
   z.object({
     name: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Profile name must be alphanumeric, dashes, underscores only'),
     type: z.enum(['block', 'allow']).default('block'),
-    blocklists: z
-      .array(
-        z.string().trim().refine(
-          (value) => {
-            const isHttpUrl = (() => {
-              try {
-                const u = new URL(value)
-                return u.protocol === 'http:' || u.protocol === 'https:'
-              } catch {
-                return false
-              }
-            })()
-            const isDomain = /^(?:\*\.)?(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\.?$|^localhost\.?$/i.test(value)
-            return isHttpUrl || isDomain
-          },
-          'Each item must be a valid URL (http/https) or a domain (e.g. example.com)',
-        ),
-      )
-      .min(1),
+    blocklists: z.array(z.string().trim().min(1, 'Each source entry must not be empty')).min(1),
   }),
 )
 export type AdsProfile = z.infer<typeof AdsProfileSchema>
