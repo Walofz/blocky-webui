@@ -5,14 +5,39 @@
 @layer base {
   :root {
     color-scheme: light;
+    font-family: "Sarabun", "Noto Sans Thai", "Segoe UI", "Tahoma", system-ui, -apple-system, sans-serif;
   }
 
   .dark {
     color-scheme: dark;
   }
 
+  html {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-gray-50 text-gray-900 transition-colors duration-200 dark:bg-gray-950 dark:text-gray-100;
+    line-height: 1.6;
+    letter-spacing: 0.002em;
+  }
+
+  .dark body {
+    line-height: 1.68;
+    letter-spacing: 0.004em;
+  }
+
+  .dark p,
+  .dark li,
+  .dark td,
+  .dark th,
+  .dark label,
+  .dark input,
+  .dark textarea,
+  .dark button {
+    letter-spacing: 0.003em;
   }
 }
 
@@ -63,10 +88,10 @@
     color: #cbd5e1;
   }
   .dark .text-gray-500 {
-    color: #94a3b8;
+    color: #a0aec0;
   }
   .dark .text-gray-400 {
-    color: #64748b;
+    color: #94a3b8;
   }
   .dark .border-gray-200 {
     border-color: #374151;

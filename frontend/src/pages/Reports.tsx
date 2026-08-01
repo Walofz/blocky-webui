@@ -282,17 +282,17 @@ export default function Reports() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="p-4 sm:p-6 space-y-6 w-full">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{labels.reportsTitle}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
             {labels.reportsSubtitle}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 w-full xl:w-auto">
           <select
-            className="input max-w-[9rem]"
+            className="input w-full"
             value={range}
             onChange={(event) => setRange(event.target.value as ReportRange)}
             aria-label={labels.reportTimeRange}
@@ -302,7 +302,7 @@ export default function Reports() {
             ))}
           </select>
           <select
-            className="input max-w-[11rem]"
+            className="input w-full"
             value={pdfLanguage}
             onChange={(event) => setPdfLanguage(event.target.value as PdfLanguage)}
             aria-label={labels.pdfLanguage}
@@ -310,19 +310,19 @@ export default function Reports() {
             <option value="en">{labels.pdfEnglish}</option>
             <option value="th">{labels.pdfThai}</option>
           </select>
-          <button className="btn-secondary" onClick={load} disabled={loading}>
+          <button className="btn-secondary w-full justify-center" onClick={load} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {labels.refresh}
           </button>
-          <button className="btn-secondary" onClick={exportJson} disabled={!reportPayload}>
+          <button className="btn-secondary w-full justify-center" onClick={exportJson} disabled={!reportPayload}>
             <FileJson2 size={14} /> {labels.exportJson}
           </button>
-          <button className="btn-secondary" onClick={previewPdf} disabled={!dashboard}>
+          <button className="btn-secondary w-full justify-center" onClick={previewPdf} disabled={!dashboard}>
             <Eye size={14} /> {labels.previewPdf}
           </button>
-          <button className="btn-secondary" onClick={exportPdf} disabled={!dashboard}>
+          <button className="btn-secondary w-full justify-center" onClick={exportPdf} disabled={!dashboard}>
             <FileText size={14} /> {labels.exportPdf}
           </button>
-          <button className="btn-primary" onClick={exportCsv} disabled={filteredLogs.length === 0}>
+          <button className="btn-primary w-full justify-center sm:col-span-2 lg:col-span-3 xl:col-span-6" onClick={exportCsv} disabled={filteredLogs.length === 0}>
             <FileSpreadsheet size={14} /> {labels.exportCsv}
           </button>
         </div>
@@ -376,6 +376,7 @@ export default function Reports() {
 
         <div className="card">
           <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.latencyPercentiles}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-300 mb-3">{labels.latencyHelp}</p>
           <dl className="space-y-2 text-sm">
             <Row label={labels.samples} value={latencySummary.samples.toLocaleString(locale)} />
             <Row label="p50" value={formatMs(latencySummary.p50)} />
@@ -908,6 +909,7 @@ function getUiLabels(language: PdfLanguage) {
       topBlockedByType: 'การบล็อกสูงสุดตามชนิดเรคคอร์ด',
       noRecordTypeData: 'ไม่มีข้อมูลชนิดเรคคอร์ดในช่วงเวลาที่เลือก',
       latencyPercentiles: 'เปอร์เซ็นไทล์ความหน่วง',
+      latencyHelp: 'p50 = 50% ของคำขอตอบได้เร็วกว่า/เท่าค่านี้, p95 = 95% เร็วกว่า/เท่าค่านี้, p99 = 99% เร็วกว่า/เท่าค่านี้',
       samples: 'จำนวนตัวอย่าง',
       reportSnapshot: 'สแนปช็อตรายงาน',
       generatedAt: 'สร้างเมื่อ',
@@ -959,6 +961,7 @@ function getUiLabels(language: PdfLanguage) {
     topBlockedByType: 'Top Blocked By Record Type',
     noRecordTypeData: 'No record type data in selected range',
     latencyPercentiles: 'Latency Percentiles',
+    latencyHelp: 'p50 = 50% of requests are this fast or faster, p95 = 95% are this fast or faster, p99 = 99% are this fast or faster.',
     samples: 'Samples',
     reportSnapshot: 'Report Snapshot',
     generatedAt: 'Generated At',
