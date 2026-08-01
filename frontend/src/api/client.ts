@@ -1,8 +1,13 @@
 import axios from 'axios'
 
+const AUTH_TOKEN = import.meta.env.VITE_AUTH_TOKEN?.toString().trim()
+
 const api = axios.create({
   baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {}),
+  },
 })
 
 // ─── Types ────────────────────────────────────────────────────────────────────

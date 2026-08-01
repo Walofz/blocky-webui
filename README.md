@@ -76,6 +76,7 @@ Open **http://localhost** in your browser.
 | `BLOCKY_URL` | `http://host.docker.internal:4000` | Blocky HTTP API — no change needed for this compose setup |
 | `WEBUI_PORT` | `80` | Host port to expose the frontend on |
 | `CORS_ORIGIN` | `http://localhost` | CORS origin for the backend |
+| `WEBUI_AUTH_TOKEN` | *(unset)* | Optional shared API token. When set, backend requires auth and frontend sends the token automatically |
 
 ### Services
 
@@ -179,6 +180,17 @@ CONFIG_DIR=/etc/blocky npm run dev
 | `DOCKER_SOCK` | `/var/run/docker.sock` | Docker socket used to restart Blocky. If unavailable, falls back to `POST /api/lists/refresh`. |
 | `LOG_DIR` | `$CONFIG_DIR/logs` | Directory where Blocky writes its CSV query log files (tailed for realtime logs) |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
+| `AUTH_TOKEN` | *(unset)* | Optional bearer token required for `/api/*` and `/events/*` when set |
+
+### Authentication (token-based)
+
+Set `WEBUI_AUTH_TOKEN` in the project `.env` file when using Docker Compose. Compose passes it to:
+- backend as `AUTH_TOKEN`
+- frontend build as `VITE_AUTH_TOKEN`
+
+When enabled:
+- API requests must include `Authorization: Bearer <token>` (frontend does this automatically)
+- SSE requests to `/events/logs` use `?token=<token>` (frontend does this automatically)
 
 ---
 
@@ -223,6 +235,7 @@ blocky-webui/
 │   │   │   ├── logIngest.ts      # Tails Blocky's CSV query log (real mode)
 │   │   │   └── logService.ts     # Ring buffer + SSE broadcaster
 │   │   └── middleware/
+│   │       ├── auth.ts           # Optional token auth for API + SSE
 │   │       └── errorHandler.ts   # Zod + ValidationError handler
 │   ├── package.json
 │   └── tsconfig.json
@@ -284,7 +297,7 @@ blocky-webui/
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/logs` | Recent logs (query params: domain, clientIP, group, action, limit) |
-| GET | `/events/logs` | SSE stream (same query params for server-side filtering) |
+| GET | `/events/logs` | SSE stream (same query params for server-side filtering, plus `token` when auth is enabled) |
 
 ### Dashboard
 | Method | Path | Description |
@@ -297,7 +310,7 @@ blocky-webui/
 
 - [ ] ~~Write a converter script (`config/generate-blocky-config.ts`)~~ ✅ `backend/src/generate-blocky-config.ts` — run with `npm run generate`
 - [ ] ~~Add real log ingestion~~ ✅ backend tails Blocky's CSV query log (`queryLog.type: csv`) when `BLOCKY_URL` is set
-- [ ] Add authentication (basic auth or token-based)
+- [x] ~~Add authentication (basic auth or token-based)~~ ✅ token-based auth via `AUTH_TOKEN` / `WEBUI_AUTH_TOKEN`
 - [ ] Persist logs to SQLite for historical queries
 - [ ] Add export / import of `custom.yaml`
 - [ ] Dark mode support

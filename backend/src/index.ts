@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import { errorHandler } from './middleware/errorHandler'
+import { requireAuth, isAuthEnabled } from './middleware/auth'
 import adsProfilesRouter from './routes/adsProfiles'
 import groupsRouter from './routes/groups'
 import dnsRouter from './routes/dns'
@@ -21,6 +22,9 @@ app.use(express.json())
 app.get('/health', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() })
 })
+
+app.use('/api', requireAuth)
+app.use('/events', requireAuth)
 
 // ─── Config export (read-only snapshot of custom.yaml) ───────────────────────
 app.get('/api/config', (_req, res) => {
@@ -56,6 +60,11 @@ app.use(errorHandler)
 app.listen(PORT, () => {
   console.log(`Blocky WebUI backend running on http://localhost:${PORT}`)
   console.log(`  Config dir: ${process.env.CONFIG_DIR ?? '../config'}`)
+  if (isAuthEnabled()) {
+    console.log('  Auth: enabled (token-based)')
+  } else {
+    console.log('  Auth: disabled')
+  }
   if (!process.env.BLOCKY_URL) {
     console.log('  [demo mode] BLOCKY_URL not set — using demo data')
     startDemoLogs()

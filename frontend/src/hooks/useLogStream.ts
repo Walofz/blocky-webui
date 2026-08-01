@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LogEntry } from '../api/client'
 
+const AUTH_TOKEN = import.meta.env.VITE_AUTH_TOKEN?.toString().trim()
+
 interface SSEFilters {
   domain?: string
   clientIP?: string
@@ -15,6 +17,7 @@ export function useLogStream(filters: SSEFilters, maxEntries = 500) {
 
   const buildUrl = useCallback(() => {
     const params = new URLSearchParams()
+    if (AUTH_TOKEN) params.set('token', AUTH_TOKEN)
     if (filters.domain) params.set('domain', filters.domain)
     if (filters.clientIP) params.set('clientIP', filters.clientIP)
     if (filters.status) params.set('status', filters.status)

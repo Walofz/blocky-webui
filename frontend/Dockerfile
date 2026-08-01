@@ -1,6 +1,8 @@
 # ── Build stage ──────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
+ARG VITE_AUTH_TOKEN
+ENV VITE_AUTH_TOKEN=${VITE_AUTH_TOKEN}
 COPY package*.json ./
 RUN npm ci
 COPY . .
