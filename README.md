@@ -179,6 +179,7 @@ CONFIG_DIR=/etc/blocky npm run dev
 | `BLOCKY_CONTAINER` | `blocky` | Name of the Blocky Docker container to restart when config changes |
 | `DOCKER_SOCK` | `/var/run/docker.sock` | Docker socket used to restart Blocky. If unavailable, falls back to `POST /api/lists/refresh`. |
 | `LOG_DIR` | `$CONFIG_DIR/logs` | Directory where Blocky writes its CSV query log files (tailed for realtime logs) |
+| `LOG_DB_PATH` | `$CONFIG_DIR/logs.sqlite` | SQLite database file used to persist DNS query logs for historical queries |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
 | `AUTH_TOKEN` | *(unset)* | Optional bearer token required for `/api/*` and `/events/*` when set |
 
@@ -311,6 +312,6 @@ blocky-webui/
 - [ ] ~~Write a converter script (`config/generate-blocky-config.ts`)~~ ✅ `backend/src/generate-blocky-config.ts` — run with `npm run generate`
 - [ ] ~~Add real log ingestion~~ ✅ backend tails Blocky's CSV query log (`queryLog.type: csv`) when `BLOCKY_URL` is set
 - [x] ~~Add authentication (basic auth or token-based)~~ ✅ token-based auth via `AUTH_TOKEN` / `WEBUI_AUTH_TOKEN`
-- [ ] Persist logs to SQLite for historical queries
+- [x] ~~Persist logs to SQLite for historical queries~~ ✅ `LOG_DB_PATH` backed storage for `/api/logs`
 - [ ] Add export / import of `custom.yaml`
 - [ ] Dark mode support

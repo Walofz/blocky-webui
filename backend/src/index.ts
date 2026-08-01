@@ -11,6 +11,7 @@ import listFilesRouter from './routes/listFiles'
 import { loadCustomConfig } from './config/loader'
 import { startDemoLogs } from './services/logService'
 import { startLogIngest } from './services/logIngest'
+import { initLogStore } from './services/logStore'
 
 const app = express()
 const PORT = process.env.PORT ?? 4000
@@ -57,21 +58,30 @@ app.get('/events/logs', (req, res) => {
 app.use(errorHandler)
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`Blocky WebUI backend running on http://localhost:${PORT}`)
-  console.log(`  Config dir: ${process.env.CONFIG_DIR ?? '../config'}`)
-  if (isAuthEnabled()) {
-    console.log('  Auth: enabled (token-based)')
-  } else {
-    console.log('  Auth: disabled')
-  }
-  if (!process.env.BLOCKY_URL) {
-    console.log('  [demo mode] BLOCKY_URL not set — using demo data')
-    startDemoLogs()
-  } else {
-    // Real mode: tail Blocky's CSV query log (queryLog.type=csv in config.yaml)
-    startLogIngest()
-  }
+async function bootstrap(): Promise<void> {
+  await initLogStore()
+
+  app.listen(PORT, () => {
+    console.log(`Blocky WebUI backend running on http://localhost:${PORT}`)
+    console.log(`  Config dir: ${process.env.CONFIG_DIR ?? '../config'}`)
+    if (isAuthEnabled()) {
+      console.log('  Auth: enabled (token-based)')
+    } else {
+      console.log('  Auth: disabled')
+    }
+    if (!process.env.BLOCKY_URL) {
+      console.log('  [demo mode] BLOCKY_URL not set — using demo data')
+      startDemoLogs()
+    } else {
+      // Real mode: tail Blocky's CSV query log (queryLog.type=csv in config.yaml)
+      startLogIngest()
+    }
+  })
+}
+
+bootstrap().catch((err) => {
+  console.error('[startup] Failed to initialize backend:', err instanceof Error ? err.message : String(err))
+  process.exit(1)
 })
 
 export default app

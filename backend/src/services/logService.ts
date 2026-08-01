@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import { EventEmitter } from 'events'
+import { persistLog } from './logStore'
 
 export interface LogEntry {
   id: string
@@ -26,6 +27,7 @@ export function appendLog(entry: Omit<LogEntry, 'id'>): LogEntry {
   const fullEntry: LogEntry = { id: String(logIdCounter++), ...entry }
   logBuffer.push(fullEntry)
   if (logBuffer.length > MAX_LOG_ENTRIES) logBuffer.shift()
+  persistLog(fullEntry)
   logEmitter.emit('log', fullEntry)
   return fullEntry
 }
