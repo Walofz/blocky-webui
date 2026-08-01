@@ -25,6 +25,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<TimeRange>('1h')
   const [error, setError] = useState<string | null>(null)
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  )
   const countFormatter = new Intl.NumberFormat()
   const percentFormatter = new Intl.NumberFormat(undefined, {
     minimumFractionDigits: 0,
@@ -52,6 +55,15 @@ export default function Dashboard() {
     return () => clearInterval(t)
   }, [])
 
+  useEffect(() => {
+    const root = document.documentElement
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(root.classList.contains('dark'))
+    })
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
   if (loading && !data) return (
     <div className="p-8 text-gray-500">Loading dashboard…</div>
   )
@@ -62,6 +74,12 @@ export default function Dashboard() {
 
   const d = data!
   const timelineData = d.timelines[range]
+  const chartGridColor = isDarkMode ? '#334155' : '#f0f0f0'
+  const chartTickColor = isDarkMode ? '#cbd5e1' : '#334155'
+  const tooltipBackground = isDarkMode ? '#0f172a' : '#ffffff'
+  const tooltipText = isDarkMode ? '#e2e8f0' : '#0f172a'
+  const blockedFill = isDarkMode ? '#7f1d1d' : '#fee2e2'
+  const allowedFill = isDarkMode ? '#14532d' : '#dcfce7'
 
   const formatTime = (iso: string) => {
     const dt = new Date(iso)
@@ -115,7 +133,7 @@ export default function Dashboard() {
       {/* Timeline */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Query Timeline</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Query Timeline</h2>
           <div className="flex gap-1">
             {(['1h', '24h', '7d'] as TimeRange[]).map((r) => (
               <button
@@ -125,7 +143,7 @@ export default function Dashboard() {
                   'px-3 py-1 rounded text-sm font-medium transition-colors',
                   range === r
                     ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
                 )}
               >
                 {r}
@@ -135,16 +153,23 @@ export default function Dashboard() {
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={timelineData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="time" tickFormatter={formatTime} tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+            <XAxis dataKey="time" tickFormatter={formatTime} tick={{ fontSize: 11, fill: chartTickColor }} />
+            <YAxis tick={{ fontSize: 11, fill: chartTickColor }} />
             <Tooltip
               labelFormatter={(l) => formatTime(String(l))}
               formatter={(v: number, name: string) => [v, name === 'blocked' ? 'Blocked' : 'Allowed']}
+              contentStyle={{
+                backgroundColor: tooltipBackground,
+                borderColor: chartGridColor,
+                color: tooltipText,
+              }}
+              labelStyle={{ color: tooltipText }}
+              itemStyle={{ color: tooltipText }}
             />
             <Legend />
-            <Area type="monotone" dataKey="blocked" stackId="1" stroke="#ef4444" fill="#fee2e2" name="blocked" />
-            <Area type="monotone" dataKey="allowed" stackId="1" stroke="#22c55e" fill="#dcfce7" name="allowed" />
+            <Area type="monotone" dataKey="blocked" stackId="1" stroke="#ef4444" fill={blockedFill} name="blocked" />
+            <Area type="monotone" dataKey="allowed" stackId="1" stroke="#22c55e" fill={allowedFill} name="allowed" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -161,8 +186,8 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <tbody>
                 {d.topBlockedDomains.map(({ domain, count }) => (
-                  <tr key={domain} className="border-b border-gray-50 last:border-0">
-                    <td className="py-1.5 text-gray-700 font-mono text-xs">{domain}</td>
+                  <tr key={domain} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <td className="py-1.5 text-gray-700 dark:text-gray-200 font-mono text-xs">{domain}</td>
                     <td className="py-1.5 text-right font-semibold text-red-600">{formatCount(count)}</td>
                   </tr>
                 ))}
@@ -181,8 +206,8 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <tbody>
                 {d.topClients.map(({ ip, count }) => (
-                  <tr key={ip} className="border-b border-gray-50 last:border-0">
-                    <td className="py-1.5 font-mono text-xs text-gray-700">{ip}</td>
+                  <tr key={ip} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <td className="py-1.5 font-mono text-xs text-gray-700 dark:text-gray-200">{ip}</td>
                     <td className="py-1.5 text-right font-semibold text-blue-600">{formatCount(count)}</td>
                   </tr>
                 ))}
@@ -203,7 +228,7 @@ export default function Dashboard() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-gray-400 border-b border-gray-100">
+                <tr className="text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
                   <th className="text-left pb-1">Group</th>
                   <th className="text-left pb-1">Profile</th>
                   <th className="text-right pb-1">Clients</th>
@@ -211,10 +236,10 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {d.groupsHealth.map((g) => (
-                  <tr key={g.name} className="border-b border-gray-50 last:border-0">
-                    <td className="py-1.5 font-medium">{g.name}</td>
-                    <td className="py-1.5 text-gray-500">{g.adsProfile}</td>
-                    <td className="py-1.5 text-right text-gray-500">{formatCount(g.clientCount)}</td>
+                  <tr key={g.name} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <td className="py-1.5 font-medium text-gray-900 dark:text-gray-100">{g.name}</td>
+                    <td className="py-1.5 text-gray-500 dark:text-gray-300">{g.adsProfile}</td>
+                    <td className="py-1.5 text-right text-gray-500 dark:text-gray-300">{formatCount(g.clientCount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -251,8 +276,8 @@ export default function Dashboard() {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-      <span className="text-gray-500">{label}</span>
+    <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-2 last:border-0 last:pb-0">
+      <span className="text-gray-500 dark:text-gray-300">{label}</span>
       <span className="font-medium">{value}</span>
     </div>
   )

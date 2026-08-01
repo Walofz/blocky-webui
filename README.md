@@ -13,6 +13,7 @@ A management web interface for [Blocky](https://0xerr0r.github.io/blocky/) — a
 | **Groups** | Client groups mapped to one or more ads profiles (by client IP/range) |
 | **Custom DNS** | Manage A, AAAA, CNAME records with validation (CNAME loop detection) |
 | **Realtime Logs** | SSE-streamed DNS query log with domain/client/group/action filters and quick-allowlist action |
+| **Reports** | Generate quick operational snapshots, filter by time window, preview/print PDF, and export report data as JSON/CSV/PDF (Thai/English) |
 
 ---
 
@@ -150,6 +151,13 @@ Frontend runs at **http://localhost:3000** and proxies `/api` and `/events` to t
 
 Navigate to **http://localhost:3000** in your browser.
 
+### 5. Run frontend tests
+
+```bash
+cd frontend
+npm test
+```
+
 ---
 
 ## Configuration Files
@@ -182,6 +190,19 @@ CONFIG_DIR=/etc/blocky npm run dev
 | `LOG_DB_PATH` | `$CONFIG_DIR/logs.sqlite` | SQLite database file used to persist DNS query logs for historical queries |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
 | `AUTH_TOKEN` | *(unset)* | Optional bearer token required for `/api/*` and `/events/*` when set |
+
+---
+
+## UI Notes
+
+- Dark mode is available via the theme toggle in the sidebar and persists to `localStorage` (`blocky-ui-theme`).
+- Mobile view includes a top bar with menu + theme toggle for quick access.
+- Report exports are available in the **Reports** page (JSON snapshot + CSV logs export + branded PDF summary), with range filters for last 1h/24h/7d/all loaded logs.
+- PDF preview supports direct printing from the preview modal.
+- PDF exports support Thai and English language selection.
+- Reports screen labels also switch Thai/English from the same language selector for one-click consistency.
+- Reports language selection is persisted in localStorage and restored on the next visit.
+- Reports include quick analytics for top blocked record types and latency percentiles (p50/p95/p99) from the selected range.
 
 ### Authentication (token-based)
 
@@ -321,4 +342,4 @@ blocky-webui/
 - [x] ~~Add authentication (basic auth or token-based)~~ ✅ token-based auth via `AUTH_TOKEN` / `WEBUI_AUTH_TOKEN`
 - [x] ~~Persist logs to SQLite for historical queries~~ ✅ `LOG_DB_PATH` backed storage for `/api/logs`
 - [x] ~~Add export / import of `custom.yaml`~~ ✅ API + UI actions in List Files page
-- [ ] Dark mode support
+- [x] ~~Dark mode support~~ ✅ light/dark theme toggle with persisted preference

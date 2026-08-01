@@ -7,7 +7,10 @@ import {
   Globe,
   FileText,
   ScrollText,
+  BarChart3,
   Box,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -18,15 +21,37 @@ const navItems = [
   { to: '/dns', label: 'Custom DNS', icon: Globe },
   { to: '/list-files', label: 'List Files', icon: FileText },
   { to: '/logs', label: 'Realtime Logs', icon: ScrollText },
+  { to: '/reports', label: 'Reports', icon: BarChart3 },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  isDarkMode: boolean
+  toggleTheme: () => void
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function Sidebar({ isDarkMode, toggleTheme, isOpen, onClose }: SidebarProps) {
   return (
-    <aside className="w-56 min-h-screen bg-gray-900 text-gray-300 flex flex-col">
+    <aside
+      className={clsx(
+        'fixed inset-y-0 left-0 z-40 w-56 min-h-screen bg-gray-900 text-gray-300 flex flex-col transform transition-transform duration-200',
+        isOpen ? 'translate-x-0' : '-translate-x-full',
+        'md:static md:translate-x-0 md:z-auto'
+      )}
+    >
       {/* Logo */}
       <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-700">
         <Box className="text-primary-400" size={22} />
         <span className="font-bold text-white text-lg tracking-tight">Blocky UI</span>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="ml-auto rounded-md border border-gray-700 bg-gray-800/80 p-2 text-gray-200 transition hover:bg-gray-700"
+          aria-label="Toggle color theme"
+        >
+          {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
       </div>
 
       {/* Nav */}
@@ -36,6 +61,7 @@ export default function Sidebar() {
             key={to}
             to={to}
             end={end}
+            onClick={onClose}
             className={({ isActive }) =>
               clsx(
                 'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
