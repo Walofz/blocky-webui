@@ -88,11 +88,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className={clsx(
             'flex items-center gap-1 text-sm font-medium',
             d.system.up ? 'text-green-600' : 'text-red-600'
@@ -100,7 +100,7 @@ export default function Dashboard() {
             <Activity size={16} />
             {d.system.up ? 'Blocky Online' : 'Blocky Offline'}
           </span>
-          <button onClick={load} className="btn-secondary" disabled={loading}>
+          <button onClick={load} className="btn-secondary w-full sm:w-auto justify-center" disabled={loading}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
@@ -134,13 +134,13 @@ export default function Dashboard() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Query Timeline</h2>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {(['1h', '24h', '7d'] as TimeRange[]).map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
                 className={clsx(
-                  'px-3 py-1 rounded text-sm font-medium transition-colors',
+                  'px-3 py-1 rounded text-sm font-medium transition-colors min-w-[3rem]',
                   range === r
                     ? 'bg-primary-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'

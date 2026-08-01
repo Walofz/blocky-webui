@@ -83,13 +83,13 @@ export default function Groups() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 w-full max-w-5xl mx-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Groups</h1>
           <p className="text-sm text-gray-500 mt-1">Map clients to ads profiles</p>
         </div>
-        <button className="btn-primary" onClick={openCreate}>
+        <button className="btn-primary w-full sm:w-auto justify-center" onClick={openCreate}>
           <Plus size={16} /> New Group
         </button>
       </div>
@@ -152,11 +152,11 @@ export default function Groups() {
             </div>
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <button className="btn-primary w-full sm:w-auto justify-center" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-secondary w-full sm:w-auto justify-center" onClick={() => setShowForm(false)}>Cancel</button>
           </div>
         </div>
       )}
@@ -169,7 +169,7 @@ export default function Groups() {
       ) : (
         <div className="space-y-3">
           {groups.map((g) => (
-            <div key={g.name} className="card flex items-start justify-between">
+            <div key={g.name} className="card flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Users size={16} className="text-primary-600" />
@@ -190,7 +190,7 @@ export default function Groups() {
                   <p className="text-xs text-gray-400 mt-1">No clients configured (applies to default)</p>
                 )}
               </div>
-              <div className="flex gap-1 ml-4">
+              <div className="flex gap-1 sm:ml-4 self-end sm:self-auto">
                 <button className="btn-secondary px-2 py-1" onClick={() => openEdit(g)}>
                   <Pencil size={14} />
                 </button>

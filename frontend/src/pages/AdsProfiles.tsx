@@ -178,13 +178,13 @@ export default function AdsProfiles() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 w-full max-w-5xl mx-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Ads Profiles</h1>
           <p className="text-sm text-gray-500 mt-1">Named profiles with Blocky definitions (URL, file path, domain, regex, inline)</p>
         </div>
-        <button className="btn-primary" onClick={openCreate}>
+        <button className="btn-primary w-full sm:w-auto justify-center" onClick={openCreate}>
           <Plus size={16} /> New Profile
         </button>
       </div>
@@ -230,11 +230,11 @@ export default function AdsProfiles() {
             </div>
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <button className="btn-primary w-full sm:w-auto justify-center" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-secondary w-full sm:w-auto justify-center" onClick={() => setShowForm(false)}>Cancel</button>
           </div>
         </div>
       )}
@@ -250,9 +250,9 @@ export default function AdsProfiles() {
         <div className="space-y-2">
           {profiles.map((p) => (
             <div key={p.name} className="card">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <button
-                  className="flex items-center gap-2 text-left flex-1"
+                  className="flex items-center gap-2 text-left flex-1 flex-wrap"
                   onClick={() => setExpanded(expanded === p.name ? null : p.name)}
                 >
                   {expanded === p.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -260,7 +260,7 @@ export default function AdsProfiles() {
                   <span className="badge-blue">Block {p.blocklists.length}</span>
                   <span className="badge-green">Allow {p.allowlists.length}</span>
                 </button>
-                <div className="flex gap-1">
+                <div className="flex gap-1 self-end sm:self-auto">
                   <button className="btn-secondary px-2 py-1" onClick={() => openEdit(p)}>
                     <Pencil size={14} />
                   </button>

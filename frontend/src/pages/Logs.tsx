@@ -101,13 +101,13 @@ export default function Logs() {
   }
 
   return (
-    <div className="p-6 flex flex-col h-[calc(100vh-0px)]">
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-4 sm:p-6 flex flex-col min-h-[calc(100vh-4rem)] w-full">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold">Realtime Logs</h1>
           <p className="text-sm text-gray-500 mt-1">Live DNS query stream with filters</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {liveMode && (
             <span className={clsx(
               'flex items-center gap-1 text-sm font-medium',
@@ -119,7 +119,7 @@ export default function Logs() {
           )}
           <button
             className={clsx(
-              'btn',
+              'btn w-full sm:w-auto justify-center',
               liveMode ? 'btn-primary' : 'btn-secondary'
             )}
             onClick={() => setLiveMode(true)}
@@ -128,7 +128,7 @@ export default function Logs() {
           </button>
           <button
             className={clsx(
-              'btn',
+              'btn w-full sm:w-auto justify-center',
               !liveMode ? 'btn-primary' : 'btn-secondary'
             )}
             onClick={() => setLiveMode(false)}
@@ -136,7 +136,7 @@ export default function Logs() {
             History
           </button>
           {liveMode && (
-            <button className="btn-secondary" onClick={clear}>
+            <button className="btn-secondary w-full sm:w-auto justify-center" onClick={clear}>
               <Eraser size={14} /> Clear
             </button>
           )}
@@ -145,9 +145,9 @@ export default function Logs() {
 
       {/* Filters */}
       <div className="mb-4 rounded-lg border border-gray-200 bg-white p-3">
-        <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
           <h2 className="text-sm font-semibold text-gray-700">Upstreams ({upstreams.length}/5)</h2>
-          <button className="btn btn-primary" onClick={saveUpstreams} disabled={savingUpstreams || upstreams.length > 5}>
+          <button className="btn btn-primary w-full sm:w-auto justify-center" onClick={saveUpstreams} disabled={savingUpstreams || upstreams.length > 5}>
             {savingUpstreams ? 'Saving…' : 'Save Upstreams'}
           </button>
         </div>
@@ -163,14 +163,14 @@ export default function Logs() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <input
             className="input text-sm"
             placeholder="Custom upstream e.g. tcp+udp:1.1.1.1"
             value={customUpstream}
             onChange={(e) => setCustomUpstream(e.target.value)}
           />
-          <button className="btn btn-secondary" type="button" onClick={addCustomUpstream} disabled={upstreams.length >= 5}>
+          <button className="btn btn-secondary w-full sm:w-auto justify-center" type="button" onClick={addCustomUpstream} disabled={upstreams.length >= 5}>
             Add
           </button>
         </div>
@@ -186,7 +186,7 @@ export default function Logs() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <input
           className="input text-sm"
           placeholder="Filter domain…"
@@ -282,15 +282,15 @@ export default function Logs() {
       </div>
 
       {liveMode && (
-        <div className="flex items-center justify-between mt-2 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-2">
           <p className="text-xs text-gray-400">
             Showing latest {displayLogs.length} events · SSE stream
           </p>
-          <div className="flex items-center gap-2">
-            <button className="btn-secondary" onClick={() => clearBackendLogs(false)} disabled={clearingLogs}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
+            <button className="btn-secondary w-full justify-center" onClick={() => clearBackendLogs(false)} disabled={clearingLogs}>
               Clear Memory Logs
             </button>
-            <button className="btn-secondary" onClick={() => clearBackendLogs(true)} disabled={clearingLogs}>
+            <button className="btn-secondary w-full justify-center" onClick={() => clearBackendLogs(true)} disabled={clearingLogs}>
               Clear Log Files
             </button>
           </div>

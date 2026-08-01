@@ -101,21 +101,21 @@ export default function CustomDNS() {
   }
 
   return (
-    <div className="p-6 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 w-full max-w-6xl mx-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Custom DNS Records</h1>
           <p className="text-sm text-gray-500 mt-1">Manage A, AAAA, and CNAME records</p>
         </div>
-        <button className="btn-primary" onClick={openCreate}>
+        <button className="btn-primary w-full sm:w-auto justify-center" onClick={openCreate}>
           <Plus size={16} /> New Record
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-[8rem_1fr] gap-3 mb-4">
         <select
-          className="input w-32"
+          className="input w-full"
           value={filter.type}
           onChange={(e) => setFilter((f) => ({ ...f, type: e.target.value }))}
         >
@@ -125,7 +125,7 @@ export default function CustomDNS() {
           <option value="CNAME">CNAME</option>
         </select>
         <input
-          className="input flex-1 max-w-xs"
+          className="input w-full"
           placeholder="Filter by domain…"
           value={filter.domain}
           onChange={(e) => setFilter((f) => ({ ...f, domain: e.target.value }))}
@@ -138,7 +138,7 @@ export default function CustomDNS() {
           <h2 className="text-lg font-semibold mb-4">{editing ? 'Edit Record' : 'New Record'}</h2>
           {error && <div className="text-red-600 text-sm mb-3 bg-red-50 p-2 rounded whitespace-pre-line">{error}</div>}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Type</label>
               <select
@@ -186,11 +186,11 @@ export default function CustomDNS() {
             )}
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <button className="btn-primary w-full sm:w-auto justify-center" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-secondary w-full sm:w-auto justify-center" onClick={() => setShowForm(false)}>Cancel</button>
           </div>
         </div>
       )}
@@ -202,7 +202,8 @@ export default function CustomDNS() {
         <div className="card text-gray-400 text-center py-8">No DNS records found.</div>
       ) : (
         <div className="card p-0 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
@@ -235,6 +236,7 @@ export default function CustomDNS() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
