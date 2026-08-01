@@ -3,6 +3,7 @@ dist/
 .junie/
 .idea/
 .git/
+.vscode/
 
 .env
 .env.local
