@@ -7,10 +7,17 @@ interface ReportPayload {
   generatedAt: string
   range: ReportRange
   summary: DashboardData['stats']
+  rangeSummary: {
+    total: number
+    blocked: number
+    resolved: number
+    blockRate: number
+  }
   system: DashboardData['system']
   configSummary: DashboardData['configSummary']
-  topBlockedDomains: DashboardData['topBlockedDomains']
-  topClients: DashboardData['topClients']
+  topBlockedDomains: Array<{ domain: string; count: number }>
+  topAllowedDomains: Array<{ domain: string; count: number }>
+  topClients: Array<{ ip: string; count: number }>
   recentLogs: LogEntry[]
 }
 
@@ -86,22 +93,14 @@ export default function Reports() {
     })
   }, [logs, range])
 
-  const reportPayload = useMemo<ReportPayload | null>(() => {
-    if (!dashboard) return null
-    return {
-      generatedAt: new Date().toISOString(),
-      range,
-      summary: dashboard.stats,
-      system: dashboard.system,
-      configSummary: dashboard.configSummary,
-      topBlockedDomains: dashboard.topBlockedDomains,
-      topClients: dashboard.topClients,
-      recentLogs: filteredLogs,
-    }
-  }, [dashboard, filteredLogs, range])
-
   const blockedCount = useMemo(() => filteredLogs.filter((entry) => entry.status === 'BLOCKED').length, [filteredLogs])
   const resolvedCount = useMemo(() => filteredLogs.filter((entry) => entry.status === 'RESOLVED').length, [filteredLogs])
+  const totalCount = filteredLogs.length
+  const blockRate = useMemo(() => {
+    if (totalCount === 0) return 0
+    return (blockedCount / totalCount) * 100
+  }, [blockedCount, totalCount])
+
   const logCountByRecordType = useMemo(() => {
     const counts = new Map<string, number>()
     for (const entry of filteredLogs) {
@@ -112,6 +111,30 @@ export default function Reports() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
       .map(([type, count]) => ({ type, count }))
+  }, [filteredLogs])
+
+  const topBlockedDomainsInRange = useMemo(
+    () => buildTopDomainCounts(filteredLogs, (entry) => entry.action === 'block' || entry.status === 'BLOCKED', 10),
+    [filteredLogs]
+  )
+
+  const topAllowedDomainsInRange = useMemo(
+    () => buildTopDomainCounts(filteredLogs, (entry) => entry.action === 'allow' || entry.status === 'RESOLVED' || entry.status === 'CACHED', 10),
+    [filteredLogs]
+  )
+
+  const topClientsInRange = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const entry of filteredLogs) {
+      const key = entry.clientIP?.trim()
+      if (!key) continue
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([ip, count]) => ({ ip, count }))
   }, [filteredLogs])
 
   const latencySummary = useMemo(() => {
@@ -131,6 +154,38 @@ export default function Reports() {
       p99: percentile(values, 0.99),
     }
   }, [filteredLogs])
+
+  const reportPayload = useMemo<ReportPayload | null>(() => {
+    if (!dashboard) return null
+    return {
+      generatedAt: new Date().toISOString(),
+      range,
+      summary: dashboard.stats,
+      rangeSummary: {
+        total: totalCount,
+        blocked: blockedCount,
+        resolved: resolvedCount,
+        blockRate,
+      },
+      system: dashboard.system,
+      configSummary: dashboard.configSummary,
+      topBlockedDomains: topBlockedDomainsInRange,
+      topAllowedDomains: topAllowedDomainsInRange,
+      topClients: topClientsInRange,
+      recentLogs: filteredLogs,
+    }
+  }, [
+    dashboard,
+    filteredLogs,
+    range,
+    totalCount,
+    blockedCount,
+    resolvedCount,
+    blockRate,
+    topBlockedDomainsInRange,
+    topAllowedDomainsInRange,
+    topClientsInRange,
+  ])
 
   const exportJson = () => {
     if (!reportPayload) return
@@ -163,10 +218,15 @@ export default function Reports() {
     const doc = buildReportPdf({
       dashboard,
       range,
+      totalCount,
       blockedCount,
       resolvedCount,
+      blockRate,
       latencySummary,
       logCountByRecordType,
+      topBlockedDomainsInRange,
+      topAllowedDomainsInRange,
+      topClientsInRange,
       language: pdfLanguage,
     })
     doc.save(`blocky-report-${range}-${pdfLanguage}-${formatFileDate()}.pdf`)
@@ -177,10 +237,15 @@ export default function Reports() {
     const doc = buildReportPdf({
       dashboard,
       range,
+      totalCount,
       blockedCount,
       resolvedCount,
+      blockRate,
       latencySummary,
       logCountByRecordType,
+      topBlockedDomainsInRange,
+      topAllowedDomainsInRange,
+      topClientsInRange,
       language: pdfLanguage,
     })
     if (pdfPreviewUrl) {
@@ -264,10 +329,32 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label={labels.totalQueries24h} value={dashboard.stats.totalQueries.toLocaleString(locale)} />
-        <StatCard label={labels.blocked24h} value={dashboard.stats.blocked.toLocaleString(locale)} color="text-red-600" />
+        <StatCard label={labels.overviewTitle} value={rangeOptions.find((option) => option.value === range)?.label ?? range} />
+        <StatCard label={labels.totalInRange} value={totalCount.toLocaleString(locale)} />
         <StatCard label={`${labels.blocked} (${rangeOptions.find((option) => option.value === range)?.label})`} value={blockedCount.toLocaleString(locale)} color="text-red-600" />
         <StatCard label={`${labels.resolved} (${rangeOptions.find((option) => option.value === range)?.label})`} value={resolvedCount.toLocaleString(locale)} color="text-green-600" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="card">
+          <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.overviewSummary}</h3>
+          <dl className="space-y-2 text-sm">
+            <Row label={labels.totalInRange} value={totalCount.toLocaleString(locale)} />
+            <Row label={labels.blockedInRange} value={blockedCount.toLocaleString(locale)} />
+            <Row label={labels.resolvedInRange} value={resolvedCount.toLocaleString(locale)} />
+            <Row label={labels.blockRateInRange} value={`${blockRate.toFixed(1)}%`} />
+          </dl>
+        </div>
+
+        <div className="card">
+          <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.context24h}</h3>
+          <dl className="space-y-2 text-sm">
+            <Row label={labels.totalQueries24h} value={dashboard.stats.totalQueries.toLocaleString(locale)} />
+            <Row label={labels.blocked24h} value={dashboard.stats.blocked.toLocaleString(locale)} />
+            <Row label={labels.resolved24h} value={dashboard.stats.allowed.toLocaleString(locale)} />
+            <Row label={labels.blockRate24h} value={`${dashboard.stats.blockRate.toFixed(1)}%`} />
+          </dl>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -313,14 +400,14 @@ export default function Reports() {
         </dl>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card">
           <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.topBlockedDomains}</h3>
-          {dashboard.topBlockedDomains.length === 0 ? (
+          {topBlockedDomainsInRange.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-300">{labels.noDataYet}</p>
           ) : (
             <ul className="space-y-1">
-              {dashboard.topBlockedDomains.slice(0, 10).map((item) => (
+              {topBlockedDomainsInRange.map((item) => (
                 <li key={item.domain} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-1">
                   <span className="font-mono text-xs text-gray-700 dark:text-gray-200">{item.domain}</span>
                   <span className="text-sm font-semibold text-red-600">{item.count.toLocaleString(locale)}</span>
@@ -331,12 +418,28 @@ export default function Reports() {
         </div>
 
         <div className="card">
-          <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.topClients}</h3>
-          {dashboard.topClients.length === 0 ? (
+          <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.topAllowedDomains}</h3>
+          {topAllowedDomainsInRange.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-300">{labels.noDataYet}</p>
           ) : (
             <ul className="space-y-1">
-              {dashboard.topClients.slice(0, 10).map((item) => (
+              {topAllowedDomainsInRange.map((item) => (
+                <li key={item.domain} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-1">
+                  <span className="font-mono text-xs text-gray-700 dark:text-gray-200">{item.domain}</span>
+                  <span className="text-sm font-semibold text-green-600">{item.count.toLocaleString(locale)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="card">
+          <h3 className="text-base font-semibold mb-2 text-gray-900 dark:text-gray-100">{labels.topClients}</h3>
+          {topClientsInRange.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-300">{labels.noDataYet}</p>
+          ) : (
+            <ul className="space-y-1">
+              {topClientsInRange.map((item) => (
                 <li key={item.ip} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-1">
                   <span className="font-mono text-xs text-gray-700 dark:text-gray-200">{item.ip}</span>
                   <span className="text-sm font-semibold text-blue-600">{item.count.toLocaleString(locale)}</span>
@@ -401,114 +504,301 @@ function percentile(sortedValues: number[], p: number): number {
 function buildReportPdf(input: {
   dashboard: DashboardData
   range: ReportRange
+  totalCount: number
   blockedCount: number
   resolvedCount: number
+  blockRate: number
   latencySummary: { samples: number; p50: number | null; p95: number | null; p99: number | null }
   logCountByRecordType: Array<{ type: string; count: number }>
+  topBlockedDomainsInRange: Array<{ domain: string; count: number }>
+  topAllowedDomainsInRange: Array<{ domain: string; count: number }>
+  topClientsInRange: Array<{ ip: string; count: number }>
   language: PdfLanguage
 }) {
-  const { dashboard, range, blockedCount, resolvedCount, latencySummary, logCountByRecordType, language } = input
+  const {
+    dashboard,
+    range,
+    totalCount,
+    blockedCount,
+    resolvedCount,
+    blockRate,
+    latencySummary,
+    logCountByRecordType,
+    topBlockedDomainsInRange,
+    topAllowedDomainsInRange,
+    topClientsInRange,
+    language,
+  } = input
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  let y = 14
-  const lineGap = 6
   const labels = getPdfLabels(language)
-  const generatedAt = new Date().toLocaleString(language === 'th' ? 'th-TH' : 'en-US')
+  const locale = language === 'th' ? 'th-TH' : 'en-US'
+  const generatedAt = new Date().toLocaleString(locale)
   const rangeLabels = getRangeOptions(language)
+  const rangeLabel = rangeLabels.find((option) => option.value === range)?.label ?? range
 
-  doc.setFillColor(29, 78, 216)
-  doc.rect(0, 0, 210, 28, 'F')
+  const margin = 14
+  const pageWidth = 210
+  const contentWidth = pageWidth - margin * 2
+
+  doc.setFillColor(15, 23, 42)
+  doc.rect(0, 0, pageWidth, 36, 'F')
+  doc.setFillColor(30, 64, 175)
+  doc.rect(0, 30, pageWidth, 6, 'F')
+
   doc.setFillColor(255, 255, 255)
-  doc.roundedRect(12, 8, 18, 12, 2, 2, 'F')
-  doc.setFontSize(10)
-  doc.setTextColor(29, 78, 216)
-  doc.text('B', 20.2, 16.2, { align: 'center' })
+  doc.roundedRect(margin, 8, 14, 14, 2, 2, 'F')
+  doc.setTextColor(30, 64, 175)
+  doc.setFontSize(12)
+  doc.text('B', margin + 7, 16.9, { align: 'center' })
+
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(16)
-  doc.text(labels.title, 35, 16)
+  doc.setFontSize(17)
+  doc.text(labels.title, margin + 18, 14)
   doc.setFontSize(10)
-  doc.text(`${labels.generated} ${generatedAt}`, 35, 22)
+  doc.text(`${labels.generated} ${generatedAt}`, margin + 18, 21)
+  doc.text(`${labels.range}: ${rangeLabel}`, pageWidth - margin, 21, { align: 'right' })
 
-  y = 36
-  doc.setTextColor(15, 23, 42)
-  doc.setFontSize(11)
-  doc.text(`${labels.range}: ${rangeLabels.find((option) => option.value === range)?.label ?? range}`, 14, y)
-  doc.text(`${labels.blocky}: ${dashboard.system.up ? labels.online : labels.offline}`, 75, y)
-  doc.text(`${labels.config}: v${dashboard.system.configVersion}`, 125, y)
-
-  y += 10
-  doc.setFontSize(12)
-  doc.text(labels.summary, 14, y)
-  y += lineGap
   doc.setFontSize(10)
-  doc.text(`${labels.totalQueries24h}: ${dashboard.stats.totalQueries.toLocaleString()}`, 16, y)
-  y += lineGap
-  doc.text(`${labels.blocked24h}: ${dashboard.stats.blocked.toLocaleString()}`, 16, y)
-  y += lineGap
-  doc.text(`${labels.filteredBlocked}: ${blockedCount.toLocaleString()}`, 16, y)
-  y += lineGap
-  doc.text(`${labels.filteredResolved}: ${resolvedCount.toLocaleString()}`, 16, y)
+  doc.setTextColor(51, 65, 85)
+  doc.text(`${labels.blocky}: ${dashboard.system.up ? labels.online : labels.offline}`, margin, 45)
+  doc.text(`${labels.config}: v${dashboard.system.configVersion}`, margin + 62, 45)
+  doc.text(`${labels.samples}: ${latencySummary.samples.toLocaleString(locale)}`, pageWidth - margin, 45, { align: 'right' })
 
-  y += 9
-  doc.setFontSize(12)
-  doc.text(labels.latency, 14, y)
-  y += lineGap
-  doc.setFontSize(10)
-  doc.text(`${labels.samples}: ${latencySummary.samples.toLocaleString()}`, 16, y)
-  y += lineGap
-  doc.text(`p50: ${formatMs(latencySummary.p50)}`, 16, y)
-  y += lineGap
-  doc.text(`p95: ${formatMs(latencySummary.p95)}`, 16, y)
-  y += lineGap
-  doc.text(`p99: ${formatMs(latencySummary.p99)}`, 16, y)
+  const cardY = 50
+  const cardGap = 3
+  const cardWidth = (contentWidth - cardGap * 3) / 4
+  const cardHeight = 23
 
-  y += 9
-  doc.setFontSize(12)
-  doc.text(labels.topBlockedDomains, 14, y)
-  y += lineGap
-  doc.setFontSize(10)
-  dashboard.topBlockedDomains.slice(0, 8).forEach((item) => {
-    if (y > 270) {
-      doc.addPage()
-      y = 14
-    }
-    doc.text(`${item.domain} - ${item.count.toLocaleString()}`, 16, y)
-    y += 5
+  drawKpiCard(doc, {
+    x: margin,
+    y: cardY,
+    w: cardWidth,
+    h: cardHeight,
+    label: labels.totalInRange,
+    value: totalCount.toLocaleString(locale),
+    accent: [37, 99, 235],
+  })
+  drawKpiCard(doc, {
+    x: margin + cardWidth + cardGap,
+    y: cardY,
+    w: cardWidth,
+    h: cardHeight,
+    label: labels.blockedInRange,
+    value: blockedCount.toLocaleString(locale),
+    accent: [220, 38, 38],
+  })
+  drawKpiCard(doc, {
+    x: margin + (cardWidth + cardGap) * 2,
+    y: cardY,
+    w: cardWidth,
+    h: cardHeight,
+    label: labels.resolvedInRange,
+    value: resolvedCount.toLocaleString(locale),
+    accent: [185, 28, 28],
+  })
+  drawKpiCard(doc, {
+    x: margin + (cardWidth + cardGap) * 3,
+    y: cardY,
+    w: cardWidth,
+    h: cardHeight,
+    label: labels.blockRateInRange,
+    value: `${blockRate.toFixed(1)}%`,
+    accent: [22, 163, 74],
   })
 
-  y += 6
-  doc.setFontSize(12)
-  doc.text(labels.topBlockedByType, 14, y)
-  y += lineGap
-  doc.setFontSize(10)
-  if (logCountByRecordType.length === 0) {
-    doc.text(labels.noData, 16, y)
-    y += 5
-  } else {
-    logCountByRecordType.forEach((item) => {
-      if (y > 270) {
-        doc.addPage()
-        y = 14
-      }
-      doc.text(`${item.type} - ${item.count.toLocaleString()}`, 16, y)
-      y += 5
-    })
+  const panelY1 = 79
+  const panelGap = 4
+  const panelWidth = (contentWidth - panelGap) / 2
+  const panelHeight = 52
+
+  drawDataPanel(doc, {
+    x: margin,
+    y: panelY1,
+    w: panelWidth,
+    h: panelHeight,
+    title: labels.latency,
+    accent: [37, 99, 235],
+    rows: [
+      { left: 'p50', right: formatMs(latencySummary.p50) },
+      { left: 'p95', right: formatMs(latencySummary.p95) },
+      { left: 'p99', right: formatMs(latencySummary.p99) },
+      { left: labels.samples, right: latencySummary.samples.toLocaleString(locale) },
+    ],
+  })
+
+  drawDataPanel(doc, {
+    x: margin + panelWidth + panelGap,
+    y: panelY1,
+    w: panelWidth,
+    h: panelHeight,
+    title: labels.topBlockedByType,
+    accent: [220, 38, 38],
+    rows: (logCountByRecordType.length === 0
+      ? [{ left: labels.noData, right: '-' }]
+      : logCountByRecordType.slice(0, 6).map((item) => ({
+          left: item.type,
+          right: item.count.toLocaleString(locale),
+        }))),
+  })
+
+  const panelY2 = panelY1 + panelHeight + 5
+  const listPanelHeight = 70
+
+  drawDataPanel(doc, {
+    x: margin,
+    y: panelY2,
+    w: panelWidth,
+    h: listPanelHeight,
+    title: labels.topBlockedDomains,
+    accent: [185, 28, 28],
+    rows: (topBlockedDomainsInRange.length === 0
+      ? [{ left: labels.noData, right: '-' }]
+      : topBlockedDomainsInRange.slice(0, 10).map((item, index) => ({
+          left: `${index + 1}. ${item.domain}`,
+          right: item.count.toLocaleString(locale),
+        }))),
+  })
+
+  drawDataPanel(doc, {
+    x: margin + panelWidth + panelGap,
+    y: panelY2,
+    w: panelWidth,
+    h: listPanelHeight,
+    title: labels.topAllowedDomains,
+    accent: [22, 163, 74],
+    rows: (topAllowedDomainsInRange.length === 0
+      ? [{ left: labels.noData, right: '-' }]
+      : topAllowedDomainsInRange.slice(0, 10).map((item, index) => ({
+          left: `${index + 1}. ${item.domain}`,
+          right: item.count.toLocaleString(locale),
+        }))),
+  })
+
+  const panelY3 = panelY2 + listPanelHeight + 5
+  drawDataPanel(doc, {
+    x: margin,
+    y: panelY3,
+    w: contentWidth,
+    h: 60,
+    title: labels.topClients,
+    accent: [37, 99, 235],
+    rows: (topClientsInRange.length === 0
+      ? [{ left: labels.noData, right: '-' }]
+      : topClientsInRange.slice(0, 10).map((item, index) => ({
+          left: `${index + 1}. ${item.ip}`,
+          right: item.count.toLocaleString(locale),
+        }))),
+  })
+
+  const pageCount = doc.getNumberOfPages()
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page)
+    doc.setDrawColor(226, 232, 240)
+    doc.line(margin, 286, pageWidth - margin, 286)
+    doc.setTextColor(100, 116, 139)
+    doc.setFontSize(9)
+    doc.text('Blocky WebUI', margin, 291)
+    doc.text(generatedAt, margin + 36, 291)
+    doc.text(`${page}/${pageCount}`, pageWidth - margin, 291, { align: 'right' })
   }
 
-  y += 6
-  doc.setFontSize(12)
-  doc.text(labels.topClients, 14, y)
-  y += lineGap
-  doc.setFontSize(10)
-  dashboard.topClients.slice(0, 8).forEach((item) => {
-    if (y > 270) {
-      doc.addPage()
-      y = 14
-    }
-    doc.text(`${item.ip} - ${item.count.toLocaleString()}`, 16, y)
-    y += 5
-  })
-
   return doc
+}
+
+function drawKpiCard(doc: jsPDF, options: {
+  x: number
+  y: number
+  w: number
+  h: number
+  label: string
+  value: string
+  accent: [number, number, number]
+}) {
+  const { x, y, w, h, label, value, accent } = options
+  doc.setFillColor(248, 250, 252)
+  doc.setDrawColor(226, 232, 240)
+  doc.roundedRect(x, y, w, h, 2, 2, 'FD')
+
+  doc.setFillColor(accent[0], accent[1], accent[2])
+  doc.rect(x, y, w, 2.3, 'F')
+
+  doc.setTextColor(71, 85, 105)
+  doc.setFontSize(8)
+  doc.text(fitText(doc, label, w - 4), x + 2, y + 8)
+
+  doc.setTextColor(15, 23, 42)
+  doc.setFontSize(12)
+  doc.text(fitText(doc, value, w - 4), x + 2, y + 16.5)
+}
+
+function drawDataPanel(doc: jsPDF, options: {
+  x: number
+  y: number
+  w: number
+  h: number
+  title: string
+  accent: [number, number, number]
+  rows: Array<{ left: string; right: string }>
+}) {
+  const { x, y, w, h, title, accent, rows } = options
+  doc.setFillColor(255, 255, 255)
+  doc.setDrawColor(226, 232, 240)
+  doc.roundedRect(x, y, w, h, 2, 2, 'FD')
+
+  doc.setFillColor(accent[0], accent[1], accent[2])
+  doc.rect(x, y, w, 8, 'F')
+
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(9.5)
+  doc.text(fitText(doc, title, w - 4), x + 2, y + 5.6)
+
+  doc.setTextColor(30, 41, 59)
+  doc.setFontSize(9)
+  const startY = y + 13
+  const rowHeight = 4.4
+  const visibleRows = Math.max(1, Math.floor((h - 14) / rowHeight))
+
+  rows.slice(0, visibleRows).forEach((row, index) => {
+    const rowY = startY + index * rowHeight
+    if (index > 0) {
+      doc.setDrawColor(241, 245, 249)
+      doc.line(x + 1.5, rowY - 2.4, x + w - 1.5, rowY - 2.4)
+    }
+
+    doc.text(fitText(doc, row.left, w - 33), x + 2, rowY)
+    doc.text(fitText(doc, row.right, 27), x + w - 2, rowY, { align: 'right' })
+  })
+}
+
+function fitText(doc: jsPDF, text: string, maxWidth: number): string {
+  if (doc.getTextWidth(text) <= maxWidth) return text
+
+  let trimmed = text
+  while (trimmed.length > 0 && doc.getTextWidth(`${trimmed}...`) > maxWidth) {
+    trimmed = trimmed.slice(0, -1)
+  }
+
+  return trimmed.length > 0 ? `${trimmed}...` : '...'
+}
+
+function buildTopDomainCounts(
+  logs: LogEntry[],
+  predicate: (entry: LogEntry) => boolean,
+  limit: number
+): Array<{ domain: string; count: number }> {
+  const counts = new Map<string, number>()
+
+  for (const entry of logs) {
+    if (!predicate(entry)) continue
+    const domain = entry.domain?.trim().toLowerCase()
+    if (!domain) continue
+    counts.set(domain, (counts.get(domain) ?? 0) + 1)
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([domain, count]) => ({ domain, count }))
 }
 
 function getPdfLabels(language: PdfLanguage) {
@@ -529,9 +819,14 @@ function getPdfLabels(language: PdfLanguage) {
       latency: 'เปอร์เซ็นไทล์ความหน่วง',
       samples: 'จำนวนตัวอย่าง',
       topBlockedDomains: 'โดเมนที่ถูกบล็อกสูงสุด',
+      topAllowedDomains: 'โดเมนที่อนุญาตสูงสุด',
       topBlockedByType: 'การบล็อกสูงสุดตามชนิดเรคคอร์ด',
       topClients: 'ไคลเอนต์สูงสุด',
       noData: 'ไม่มีข้อมูล',
+      totalInRange: 'คำขอในช่วงเวลา',
+      blockedInRange: 'บล็อกในช่วงเวลา',
+      resolvedInRange: 'ผ่านการแก้ไขในช่วงเวลา',
+      blockRateInRange: 'อัตราบล็อกในช่วงเวลา',
     }
   }
 
@@ -551,9 +846,14 @@ function getPdfLabels(language: PdfLanguage) {
     latency: 'Latency Percentiles',
     samples: 'Samples',
     topBlockedDomains: 'Top Blocked Domains',
+    topAllowedDomains: 'Top Allowed Domains',
     topBlockedByType: 'Top Blocked by Record Type',
     topClients: 'Top Clients',
     noData: 'No data',
+    totalInRange: 'Total In Range',
+    blockedInRange: 'Blocked In Range',
+    resolvedInRange: 'Resolved In Range',
+    blockRateInRange: 'Block Rate In Range',
   }
 }
 
@@ -592,8 +892,17 @@ function getUiLabels(language: PdfLanguage) {
       previewPdf: 'พรีวิว PDF',
       exportPdf: 'ส่งออก PDF',
       exportCsv: 'ส่งออก CSV Logs',
+      overviewTitle: 'ภาพรวม',
+      overviewSummary: 'ภาพรวมตามช่วงเวลาที่เลือก',
+      context24h: 'บริบท 24 ชั่วโมงล่าสุด',
+      totalInRange: 'คำขอในช่วงเวลา',
+      blockedInRange: 'บล็อกในช่วงเวลา',
+      resolvedInRange: 'ผ่านการแก้ไขในช่วงเวลา',
+      blockRateInRange: 'อัตราบล็อกในช่วงเวลา',
       totalQueries24h: 'คำขอทั้งหมด (24 ชม.)',
       blocked24h: 'บล็อกแล้ว (24 ชม.)',
+      resolved24h: 'ผ่านการแก้ไข (24 ชม.)',
+      blockRate24h: 'อัตราบล็อก (24 ชม.)',
       blocked: 'บล็อก',
       resolved: 'ผ่านการแก้ไข',
       topBlockedByType: 'การบล็อกสูงสุดตามชนิดเรคคอร์ด',
@@ -610,6 +919,7 @@ function getUiLabels(language: PdfLanguage) {
       online: 'ออนไลน์',
       offline: 'ออฟไลน์',
       topBlockedDomains: 'โดเมนที่ถูกบล็อกสูงสุด',
+      topAllowedDomains: 'โดเมนที่อนุญาตสูงสุด',
       topClients: 'ไคลเอนต์สูงสุด',
       noDataYet: 'ยังไม่มีข้อมูล',
       pdfPreview: 'พรีวิว PDF',
@@ -633,8 +943,17 @@ function getUiLabels(language: PdfLanguage) {
     previewPdf: 'Preview PDF',
     exportPdf: 'Export PDF',
     exportCsv: 'Export Logs CSV',
+    overviewTitle: 'Overview',
+    overviewSummary: 'Overview by Selected Range',
+    context24h: 'Last 24h Context',
+    totalInRange: 'Total In Range',
+    blockedInRange: 'Blocked In Range',
+    resolvedInRange: 'Resolved In Range',
+    blockRateInRange: 'Block Rate In Range',
     totalQueries24h: 'Total Queries (24h)',
     blocked24h: 'Blocked (24h)',
+    resolved24h: 'Resolved (24h)',
+    blockRate24h: 'Block Rate (24h)',
     blocked: 'Blocked',
     resolved: 'Resolved',
     topBlockedByType: 'Top Blocked By Record Type',
@@ -651,6 +970,7 @@ function getUiLabels(language: PdfLanguage) {
     online: 'Online',
     offline: 'Offline',
     topBlockedDomains: 'Top Blocked Domains',
+    topAllowedDomains: 'Top Allowed Domains',
     topClients: 'Top Clients',
     noDataYet: 'No data yet',
     pdfPreview: 'PDF Preview',
