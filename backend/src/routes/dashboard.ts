@@ -10,16 +10,22 @@ router.get('/', async (_req: Request, res: Response) => {
   const config = loadCustomConfig()
   const status = await getBlockyStatus()
   const allLogs = getRecentLogs({ limit: 999999 })
+  const now = Date.now()
+  const oneHour = 60 * 60 * 1000
+  const summaryLogs = allLogs.filter((l) => {
+    const timestamp = new Date(l.timestamp).getTime()
+    return timestamp >= now - 24 * oneHour && timestamp <= now
+  })
 
   // ─── Stats ────────────────────────────────────────────────────────────────
-  const totalQueries = allLogs.length
-  const blocked = allLogs.filter((l) => l.action === 'block').length
-  const allowed = allLogs.filter((l) => l.action === 'allow').length
+  const totalQueries = summaryLogs.length
+  const blocked = summaryLogs.filter((l) => l.action === 'block').length
+  const allowed = summaryLogs.filter((l) => l.action === 'allow').length
   const blockRate = totalQueries > 0 ? Math.round((blocked / totalQueries) * 100) : 0
 
   // ─── Top blocked domains ──────────────────────────────────────────────────
   const domainCounts: Record<string, number> = {}
-  for (const log of allLogs.filter((l) => l.action === 'block')) {
+  for (const log of summaryLogs.filter((l) => l.action === 'block')) {
     domainCounts[log.domain] = (domainCounts[log.domain] ?? 0) + 1
   }
   const topBlockedDomains = Object.entries(domainCounts)
@@ -29,7 +35,7 @@ router.get('/', async (_req: Request, res: Response) => {
 
   // ─── Top clients ──────────────────────────────────────────────────────────
   const clientCounts: Record<string, number> = {}
-  for (const log of allLogs) {
+  for (const log of summaryLogs) {
     clientCounts[log.clientIP] = (clientCounts[log.clientIP] ?? 0) + 1
   }
   const topClients = Object.entries(clientCounts)
@@ -38,8 +44,6 @@ router.get('/', async (_req: Request, res: Response) => {
     .map(([ip, count]) => ({ ip, count }))
 
   // ─── Timeline buckets ─────────────────────────────────────────────────────
-  const now = Date.now()
-  const oneHour = 60 * 60 * 1000
   const timelines = {
     '1h': buildTimeline(allLogs, now - oneHour, now, 12),
     '24h': buildTimeline(allLogs, now - 24 * oneHour, now, 24),

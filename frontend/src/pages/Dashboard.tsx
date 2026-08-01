@@ -25,6 +25,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<TimeRange>('1h')
   const [error, setError] = useState<string | null>(null)
+  const countFormatter = new Intl.NumberFormat()
+  const percentFormatter = new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  })
+
+  const formatCount = (value: number) => countFormatter.format(value)
+  const formatPercent = (value: number) => `${percentFormatter.format(value)}%`
 
   const load = async () => {
     try {
@@ -83,23 +91,24 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Queries" value={d.stats.totalQueries.toLocaleString()} />
+        <StatCard label="Total Queries" value={formatCount(d.stats.totalQueries)} sub="last 24h" />
         <StatCard
           label="Blocked"
-          value={d.stats.blocked.toLocaleString()}
+          value={formatCount(d.stats.blocked)}
           color="text-red-600"
-          sub="queries blocked"
+          sub="queries blocked in last 24h"
         />
         <StatCard
           label="Allowed"
-          value={d.stats.allowed.toLocaleString()}
+          value={formatCount(d.stats.allowed)}
           color="text-green-600"
-          sub="queries allowed"
+          sub="queries allowed in last 24h"
         />
         <StatCard
           label="Block Rate"
-          value={`${d.stats.blockRate}%`}
+          value={formatPercent(d.stats.blockRate)}
           color={d.stats.blockRate > 50 ? 'text-orange-600' : 'text-blue-600'}
+          sub="last 24h"
         />
       </div>
 
@@ -154,7 +163,7 @@ export default function Dashboard() {
                 {d.topBlockedDomains.map(({ domain, count }) => (
                   <tr key={domain} className="border-b border-gray-50 last:border-0">
                     <td className="py-1.5 text-gray-700 font-mono text-xs">{domain}</td>
-                    <td className="py-1.5 text-right font-semibold text-red-600">{count}</td>
+                    <td className="py-1.5 text-right font-semibold text-red-600">{formatCount(count)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -174,7 +183,7 @@ export default function Dashboard() {
                 {d.topClients.map(({ ip, count }) => (
                   <tr key={ip} className="border-b border-gray-50 last:border-0">
                     <td className="py-1.5 font-mono text-xs text-gray-700">{ip}</td>
-                    <td className="py-1.5 text-right font-semibold text-blue-600">{count}</td>
+                    <td className="py-1.5 text-right font-semibold text-blue-600">{formatCount(count)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -205,7 +214,7 @@ export default function Dashboard() {
                   <tr key={g.name} className="border-b border-gray-50 last:border-0">
                     <td className="py-1.5 font-medium">{g.name}</td>
                     <td className="py-1.5 text-gray-500">{g.adsProfile}</td>
-                    <td className="py-1.5 text-right text-gray-500">{g.clientCount}</td>
+                    <td className="py-1.5 text-right text-gray-500">{formatCount(g.clientCount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -230,9 +239,9 @@ export default function Dashboard() {
               </span>
             } />
             <Row label="Config Version" value={`v${d.system.configVersion}`} />
-            <Row label="Ads Profiles" value={d.configSummary.adsProfileCount} />
-            <Row label="Groups" value={d.configSummary.groupCount} />
-            <Row label="DNS Records" value={d.configSummary.dnsRecordCount} />
+            <Row label="Ads Profiles" value={formatCount(d.configSummary.adsProfileCount)} />
+            <Row label="Groups" value={formatCount(d.configSummary.groupCount)} />
+            <Row label="DNS Records" value={formatCount(d.configSummary.dnsRecordCount)} />
           </div>
         </div>
       </div>
