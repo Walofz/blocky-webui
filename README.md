@@ -305,6 +305,13 @@ blocky-webui/
 |--------|------|-------------|
 | GET | `/api/dashboard` | Full dashboard payload |
 
+### Config Backup
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/config` | Read parsed custom config JSON |
+| GET | `/api/config/export` | Download raw `custom.yaml` |
+| POST | `/api/config/import` | Import `custom.yaml` content (`{ content: string }`) and apply |
+
 ---
 
 ## Next Steps
@@ -313,5 +320,5 @@ blocky-webui/
 - [ ] ~~Add real log ingestion~~ ✅ backend tails Blocky's CSV query log (`queryLog.type: csv`) when `BLOCKY_URL` is set
 - [x] ~~Add authentication (basic auth or token-based)~~ ✅ token-based auth via `AUTH_TOKEN` / `WEBUI_AUTH_TOKEN`
 - [x] ~~Persist logs to SQLite for historical queries~~ ✅ `LOG_DB_PATH` backed storage for `/api/logs`
-- [ ] Add export / import of `custom.yaml`
+- [x] ~~Add export / import of `custom.yaml`~~ ✅ API + UI actions in List Files page
 - [ ] Dark mode support

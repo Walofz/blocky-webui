@@ -8,7 +8,7 @@ import dnsRouter from './routes/dns'
 import logsRouter from './routes/logs'
 import dashboardRouter from './routes/dashboard'
 import listFilesRouter from './routes/listFiles'
-import { loadCustomConfig } from './config/loader'
+import configRouter from './routes/config'
 import { startDemoLogs } from './services/logService'
 import { startLogIngest } from './services/logIngest'
 import { initLogStore } from './services/logStore'
@@ -28,12 +28,8 @@ app.use('/api', requireAuth)
 app.use('/events', requireAuth)
 
 // ─── Config export (read-only snapshot of custom.yaml) ───────────────────────
-app.get('/api/config', (_req, res) => {
-  const config = loadCustomConfig()
-  res.json(config)
-})
-
 // ─── Routers ──────────────────────────────────────────────────────────────────
+app.use('/api/config', configRouter)
 app.use('/api/ads-profiles', adsProfilesRouter)
 app.use('/api/groups', groupsRouter)
 app.use('/api/dns', dnsRouter)

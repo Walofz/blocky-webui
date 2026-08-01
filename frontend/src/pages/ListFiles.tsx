@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Save, FileText, Pencil } from 'lucide-react'
-import { listFilesApi, SavedListFile } from '../api/client'
+import { Save, FileText, Pencil, Download, Upload } from 'lucide-react'
+import { configApi, listFilesApi, SavedListFile } from '../api/client'
 
 export default function ListFiles() {
   const [fileName, setFileName] = useState('allow-pr')
@@ -9,6 +9,7 @@ export default function ListFiles() {
   const [files, setFiles] = useState<SavedListFile[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [loadingFileName, setLoadingFileName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -57,6 +58,43 @@ export default function ListFiles() {
     }
   }
 
+  const handleExportConfig = async () => {
+    try {
+      setError(null)
+      const content = await configApi.exportYaml()
+      const blob = new Blob([content], { type: 'application/x-yaml;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'custom.yaml'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (e: unknown) {
+      setError(getErrorMsg(e))
+    }
+  }
+
+  const handleImportConfig = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      setError(null)
+      setImporting(true)
+      const text = await file.text()
+      await configApi.importYaml(text)
+      await load()
+      alert('custom.yaml imported and applied successfully')
+    } catch (e: unknown) {
+      setError(getErrorMsg(e))
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="p-6 max-w-5xl">
       <div className="mb-6">
@@ -67,6 +105,30 @@ export default function ListFiles() {
       </div>
 
       {error && <div className="mb-4 rounded-md bg-red-50 text-red-700 px-4 py-2 text-sm">{error}</div>}
+
+      <div className="card mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Config Backup</h2>
+            <p className="text-sm text-gray-500 mt-1">Export หรือ import ไฟล์ custom.yaml โดยตรง</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-secondary" onClick={handleExportConfig}>
+              <Download size={14} /> Export custom.yaml
+            </button>
+            <label className="btn-primary cursor-pointer">
+              <Upload size={14} /> {importing ? 'Importing...' : 'Import custom.yaml'}
+              <input
+                type="file"
+                accept=".yaml,.yml,text/yaml,text/x-yaml"
+                className="hidden"
+                disabled={importing}
+                onChange={handleImportConfig}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
 
       <div className="card mb-6 space-y-4">
         <div>

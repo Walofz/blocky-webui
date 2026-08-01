@@ -98,6 +98,21 @@ export interface SavedListFileDetail {
   content: string
 }
 
+export interface ConfigImportResult {
+  imported: boolean
+  reload: {
+    ok: boolean
+    method?: string
+    status?: number
+    error?: string
+    restart?: {
+      ok: boolean
+      status?: number
+      error?: string
+    }
+  }
+}
+
 // ─── Ads Profiles ─────────────────────────────────────────────────────────────
 
 export const adsProfilesApi = {
@@ -155,6 +170,14 @@ export const listFilesApi = {
   get: (name: string) => api.get<SavedListFileDetail>(`/list-files/${encodeURIComponent(name)}`).then((r) => r.data),
   save: (payload: SaveListFilePayload) =>
     api.post<SaveListFileResponse>('/list-files', payload).then((r) => r.data),
+}
+
+// ─── Config Import/Export ────────────────────────────────────────────────────
+
+export const configApi = {
+  exportYaml: () => api.get<string>('/config/export', { responseType: 'text' }).then((r) => r.data),
+  importYaml: (content: string) =>
+    api.post<ConfigImportResult>('/config/import', { content }).then((r) => r.data),
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
