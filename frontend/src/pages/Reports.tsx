@@ -24,6 +24,7 @@ interface ReportPayload {
 type ReportRange = '1h' | '24h' | '7d' | 'all'
 type PdfLanguage = 'en' | 'th'
 const REPORT_LANGUAGE_STORAGE_KEY = 'blocky-report-language'
+const LOG_CHUNK_SIZE = 2000
 
 export default function Reports() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
@@ -35,33 +36,51 @@ export default function Reports() {
     return stored === 'th' || stored === 'en' ? stored : 'en'
   })
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
+  const [fetchLimit, setFetchLimit] = useState(LOG_CHUNK_SIZE)
+  const [hasMoreLogs, setHasMoreLogs] = useState(true)
   const previewFrameRef = useRef<HTMLIFrameElement>(null)
   const labels = useMemo(() => getUiLabels(pdfLanguage), [pdfLanguage])
   const rangeOptions = useMemo(() => getRangeOptions(pdfLanguage), [pdfLanguage])
   const locale = pdfLanguage === 'th' ? 'th-TH' : 'en-US'
 
-  const load = async () => {
+  const load = async (limit = fetchLimit, isLoadMore = false) => {
     try {
-      setLoading(true)
+      if (isLoadMore) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
       setError(null)
       const [dashboardData, recentLogs] = await Promise.all([
         dashboardApi.get(),
-        logsApi.list({ limit: 2000 }),
+        logsApi.list({ limit }),
       ])
       setDashboard(dashboardData)
       setLogs(recentLogs)
+      setFetchLimit(limit)
+      setHasMoreLogs(recentLogs.length >= limit)
     } catch {
       setError(labels.failedToGenerate)
     } finally {
-      setLoading(false)
+      if (isLoadMore) {
+        setLoadingMore(false)
+      } else {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
-    load()
+    load(LOG_CHUNK_SIZE)
   }, [])
+
+  const loadMoreLogs = async () => {
+    const nextLimit = fetchLimit + LOG_CHUNK_SIZE
+    await load(nextLimit, true)
+  }
 
   useEffect(() => {
     window.localStorage.setItem(REPORT_LANGUAGE_STORAGE_KEY, pdfLanguage)
@@ -310,7 +329,7 @@ export default function Reports() {
             <option value="en">{labels.pdfEnglish}</option>
             <option value="th">{labels.pdfThai}</option>
           </select>
-          <button className="btn-secondary w-full justify-center" onClick={load} disabled={loading}>
+          <button className="btn-secondary w-full justify-center" onClick={() => load(fetchLimit)} disabled={loading || loadingMore}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {labels.refresh}
           </button>
           <button className="btn-secondary w-full justify-center" onClick={exportJson} disabled={!reportPayload}>
@@ -333,6 +352,19 @@ export default function Reports() {
         <StatCard label={labels.totalInRange} value={totalCount.toLocaleString(locale)} />
         <StatCard label={`${labels.blocked} (${rangeOptions.find((option) => option.value === range)?.label})`} value={blockedCount.toLocaleString(locale)} color="text-red-600" />
         <StatCard label={`${labels.resolved} (${rangeOptions.find((option) => option.value === range)?.label})`} value={resolvedCount.toLocaleString(locale)} color="text-green-600" />
+      </div>
+
+      <div className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-sm text-gray-500 dark:text-gray-300">
+          {labels.loadedLogs}: {logs.length.toLocaleString(locale)}
+        </p>
+        <button
+          className="btn-secondary w-full sm:w-auto justify-center"
+          onClick={loadMoreLogs}
+          disabled={loading || loadingMore || !hasMoreLogs}
+        >
+          {loadingMore ? labels.loadingMore : hasMoreLogs ? labels.loadMoreLogs : labels.allLogsLoaded}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -889,6 +921,10 @@ function getUiLabels(language: PdfLanguage) {
       pdfEnglish: 'PDF: English',
       pdfThai: 'PDF: ไทย',
       refresh: 'รีเฟรช',
+      loadingMore: 'กำลังโหลดเพิ่ม...',
+      loadMoreLogs: 'โหลด log เพิ่ม',
+      allLogsLoaded: 'โหลดครบเท่าที่มีแล้ว',
+      loadedLogs: 'จำนวน log ที่โหลด',
       exportJson: 'ส่งออก JSON',
       previewPdf: 'พรีวิว PDF',
       exportPdf: 'ส่งออก PDF',
@@ -941,6 +977,10 @@ function getUiLabels(language: PdfLanguage) {
     pdfEnglish: 'PDF: English',
     pdfThai: 'PDF: ไทย',
     refresh: 'Refresh',
+    loadingMore: 'Loading more...',
+    loadMoreLogs: 'Load more logs',
+    allLogsLoaded: 'All available logs loaded',
+    loadedLogs: 'Loaded logs',
     exportJson: 'Export JSON',
     previewPdf: 'Preview PDF',
     exportPdf: 'Export PDF',
