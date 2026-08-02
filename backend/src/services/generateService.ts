@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import yaml from 'js-yaml'
 import { CustomConfig } from '../config/schema'
+import { normalizeClientGroupsBlock } from './clientGroups'
 
 interface BlockyConfig {
   blocking?: {
@@ -121,6 +122,8 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
     }
   }
 
+  const normalizedClientGroupsBlock = normalizeClientGroupsBlock(clientGroupsBlock)
+
   // customDNS.mapping (A/AAAA) and customDNS.rewrite (CNAME)
   const mapping: Record<string, string> = {}
   const rewrite: Record<string, string> = {}
@@ -138,7 +141,7 @@ export function generateBlockyConfig(custom: CustomConfig, configDir: string): s
       ...(base.blocking ?? {}),
       denylists: Object.keys(denylists).length > 0 ? denylists : undefined,
       allowlists: Object.keys(allowlists).length > 0 ? allowlists : undefined,
-      clientGroupsBlock,
+      clientGroupsBlock: normalizedClientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },
     customDNS: {

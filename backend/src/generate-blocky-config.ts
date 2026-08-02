@@ -17,6 +17,7 @@
 import fs from 'fs'
 import path from 'path'
 import yaml from 'js-yaml'
+import { normalizeClientGroupsBlock } from './services/clientGroups'
 
 // ─── Types (minimal, matching Blocky's config schema) ─────────────────────────
 
@@ -184,6 +185,8 @@ function main() {
     }
   }
 
+  const normalizedClientGroupsBlock = normalizeClientGroupsBlock(clientGroupsBlock)
+
   // ─── Build customDNS.mapping (A / AAAA records) ───────────────────────────
   // Blocky format: { "router.local": "192.168.1.1" }
   const mapping: Record<string, string> = {}
@@ -205,7 +208,7 @@ function main() {
       ...(base.blocking ?? {}),
       ...(Object.keys(denylists).length > 0 ? { denylists } : {}),
       ...(Object.keys(allowlists).length > 0 ? { allowlists } : {}),
-      clientGroupsBlock,
+      clientGroupsBlock: normalizedClientGroupsBlock,
       blockType: base.blocking?.blockType ?? 'nxDomain',
     },
     customDNS: {

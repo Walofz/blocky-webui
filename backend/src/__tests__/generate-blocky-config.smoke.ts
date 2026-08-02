@@ -2,8 +2,29 @@ import assert from 'assert'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import net from 'net'
 import { execFileSync } from 'child_process'
 import yaml from 'js-yaml'
+
+function ipv4InCidr(ip: string, cidr: string): boolean {
+  const [network, prefixText] = cidr.split('/')
+  if (net.isIP(network) !== 4) {
+    return false
+  }
+
+  const prefix = Number(prefixText)
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32 || net.isIP(ip) !== 4) {
+    return false
+  }
+
+  const ipParts = ip.split('.').map(Number)
+  const networkParts = network.split('.').map(Number)
+  const ipValue = ipParts.reduce((accumulator, part) => (accumulator << 8) + part, 0) >>> 0
+  const networkValue = networkParts.reduce((accumulator, part) => (accumulator << 8) + part, 0) >>> 0
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0
+
+  return (ipValue & mask) === (networkValue & mask)
+}
 
 function main() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'blocky-generate-'))
@@ -22,6 +43,16 @@ function main() {
         name: 'allow-only',
         adsProfiles: ['allow-pr'],
         clients: ['127.0.0.1'],
+      },
+      {
+        name: 'subnet-ads',
+        adsProfiles: ['allow-pr'],
+        clients: ['192.168.20.240'],
+      },
+      {
+        name: 'subnet-block',
+        adsProfiles: ['ads-basic'],
+        clients: ['192.168.20.0/24'],
       },
     ],
     upstreams: ['tcp+udp:1.1.1.1'],
@@ -48,7 +79,12 @@ function main() {
 
   const generatedPath = path.join(tempDir, 'config.generated.yaml')
   const generatedText = fs.readFileSync(generatedPath, 'utf8')
-  const generated = yaml.load(generatedText) as { blocking?: { allowlists?: Record<string, string[]> } }
+  const generated = yaml.load(generatedText) as {
+    blocking?: {
+      allowlists?: Record<string, string[]>
+      clientGroupsBlock?: Record<string, string[]>
+    }
+  }
 
   const allowEntries = generated.blocking?.allowlists?.['allow-pr'] ?? []
 
@@ -56,6 +92,16 @@ function main() {
   assert(allowEntries.some((entry) => entry.includes('pornhub.com') && entry.includes('pornhub.org') && entry.includes('\n')), 'Plain domains should be grouped into one inline list block')
   assert(!allowEntries.includes('pornhub.com'), 'Plain domain must not be emitted as a direct source item')
   assert(!allowEntries.includes('pornhub.org'), 'Plain domain must not be emitted as a direct source item')
+
+  const clientGroupsBlock = generated.blocking?.clientGroupsBlock ?? {}
+  const subnetEntries = Object.entries(clientGroupsBlock)
+    .filter(([, profiles]) => profiles.length === 1 && profiles[0] === 'ads-basic')
+    .map(([identifier]) => identifier)
+
+  assert.deepStrictEqual(clientGroupsBlock['192.168.20.240'], ['allow-pr'], 'exact IP should still be present with the allow profile')
+  assert(!subnetEntries.includes('192.168.20.0/24'), 'overlapping CIDR should be rewritten instead of kept verbatim')
+  assert(subnetEntries.length > 0, 'overlapping CIDR should be split into one or more narrower ranges')
+  assert(!subnetEntries.some((identifier) => identifier.includes('/') && ipv4InCidr('192.168.20.240', identifier)), 'split CIDRs must not include the exception IP')
 
   fs.rmSync(tempDir, { recursive: true, force: true })
   console.log('generate-blocky-config smoke test: ALL PASSED')
