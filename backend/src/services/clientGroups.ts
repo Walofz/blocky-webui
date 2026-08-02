@@ -127,11 +127,11 @@ export function normalizeClientGroupsBlock(clientGroupsBlock: Record<string, str
   const normalized: Record<string, string[]> = {}
 
   for (const [identifier, profiles] of passthroughEntries) {
-    normalized[identifier] = profiles
+    normalized[identifier] = [...profiles]
   }
 
   for (const [identifier, profiles] of exactIpv4Profiles.entries()) {
-    normalized[identifier] = profiles
+    normalized[identifier] = [...profiles]
   }
 
   for (const { identifier, profiles } of cidrEntries) {
@@ -143,7 +143,7 @@ export function normalizeClientGroupsBlock(clientGroupsBlock: Record<string, str
     const splitCidrs = subtractIpv4PointsFromCidr(identifier, exclusions)
 
     for (const splitCidr of splitCidrs) {
-      normalized[splitCidr] = profiles
+      normalized[splitCidr] = [...profiles]
     }
   }
 
